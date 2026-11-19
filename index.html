@@ -744,12 +744,14 @@ main,footer{position:relative;z-index:1}
         <div class="track">
           <div class="set">
           <span class="tile bare"><img src="img/rj-logo.png" alt="RJ Industrial Supply Inc." width="903" height="278"></span>
+          <span class="tile bare"><img src="img/nn-c.png" alt="Near North Supply" width="415" height="139"></span>
           <span class="tile bare"><img class="mk" src="img/nuara-c.png" alt="" width="160" height="118"><span class="tw" style="color:#8f5bff">Nuara</span></span>
           <span class="tile bare"><img src="img/logo-ejt.png" alt="EJT Fitness" width="520" height="160"></span>
           <span class="tile bare"><img class="mk" src="img/shine-c.png" alt="" width="126" height="139"><span class="tw" style="color:#6cc4f4">Premium Shine</span></span>
           </div>
           <div class="set dup" aria-hidden="true">
           <span class="tile bare"><img src="img/rj-logo.png" alt="" width="903" height="278"></span>
+          <span class="tile bare"><img src="img/nn-c.png" alt="" width="415" height="139"></span>
           <span class="tile bare"><img class="mk" src="img/nuara-c.png" alt="" width="160" height="118"><span class="tw" style="color:#8f5bff">Nuara</span></span>
           <span class="tile bare"><img src="img/logo-ejt.png" alt="" width="520" height="160"></span>
           <span class="tile bare"><img class="mk" src="img/shine-c.png" alt="" width="126" height="139"><span class="tw" style="color:#6cc4f4">Premium Shine</span></span>
@@ -1079,7 +1081,7 @@ var cases = [
    title:"How RJ Industrial Supply cut PO entry from 8 minutes to about a minute",
    summary:"About fifty purchase orders a day were being typed in by hand. An AI order-intake system now reads them, translates shorthand to exact SKUs and drafts the sales order in NetSuite for one-click approval.",
    card:{kind:"Industrial supply distributor, North Bay", title:"Orders that enter themselves", metric:"8 min → ~1 min", cap:"to enter each purchase order", rows:[["Photo of a handwritten order","Read"],["3/4 copper 90s x 20","Matched"],["Sales order","Drafted"],["Your approval","1 click"]]},
-   stats:[["28 h","saved every week"],["85% faster","per order"],["5 weeks","to deploy on NetSuite"]],
+   stats:[["28 h","saved every week (~104 h a month)"],["85% faster","per order"],["5 weeks","to deploy on NetSuite"]],
    snap:[["Client","RJ Industrial Supply Inc."],["Business","Industrial supply distributor, North Bay, Ontario"],["Tech stack","NetSuite"],["Order volume","~50 customer POs a day (~250 a week), mostly emailed PDFs and smartphone photos of handwritten lists"],["Deployed","5 weeks"]],
    body:[
     {h:"The bottleneck", ul:[
@@ -1091,7 +1093,7 @@ var cases = [
     {h:"Inside the system", p:["Take the intake system apart step by step. Dark blocks are drafted by the system. The light block is a person's decision."], fig:"model"},
     {h:"Results", fig:"table"}],
    cols:["Operational metric","Before","After","Net impact"],
-   rows:[["Order entry time per PO","~8 minutes","~1 to 1.5 minutes (review)","85% faster per order"],["Daily order-entry load (50 POs/day)","~6.7 hours/day (~33.5 hrs/wk)","~1.1 hours/day (~5.5 hrs/wk)","28 hours/week saved"]],
+   rows:[["Order entry time per PO","~8 minutes","~1 to 1.5 minutes (review)","85% faster per order"],["Daily order-entry load (50 POs/day)","~6.7 hours/day (~33.5 hrs/wk)","~1.1 hours/day (~5.5 hrs/wk)","28 hours/week saved (~104 hours/month)"]],
    pipe:[["Order in","Emailed PDF or a phone photo of a handwritten list"],["Read","Lines, quantities and customer picked out"],["Matched","Shorthand mapped to exact SKUs in the catalog"],["Drafted","Complete sales order built inside NetSuite"],["Approved","Reviewed in about 1 to 1.5 minutes and approved with one click"]],
    steps:[
     {t:"Order in", b:"~50 POs a day, each keyed in by hand at ~8 minutes.", a:"Reads emailed PDFs and phone photos of handwritten orders automatically."},
