@@ -731,7 +731,7 @@ main,footer{position:relative;z-index:1}
       </div>
       <div class="stats">
         <div><b>5 min → 30 s</b><span>per dental lab prescription, typed versus reviewed</span></div>
-        <div><b>93% faster</b><span>order entry at a plumbing and HVAC distributor</span></div>
+        <div><b>85% faster</b><span>order entry at an industrial supply distributor</span></div>
         <div><b>87% adoption</b><span>of a coaching agency's 110 clients, on an app built in 3 months</span></div>
       </div>
     </div>
@@ -743,13 +743,13 @@ main,footer{position:relative;z-index:1}
       <div class="marquee">
         <div class="track">
           <div class="set">
-          <span class="tile bare"><img src="img/nn-c.png" alt="Near North Supply" width="415" height="139"></span>
+          <span class="tile bare"><img src="img/rj-logo.png" alt="RJ Industrial Supply Inc." width="903" height="278"></span>
           <span class="tile bare"><img class="mk" src="img/nuara-c.png" alt="" width="160" height="118"><span class="tw" style="color:#8f5bff">Nuara</span></span>
           <span class="tile bare"><img src="img/logo-ejt.png" alt="EJT Fitness" width="520" height="160"></span>
           <span class="tile bare"><img class="mk" src="img/shine-c.png" alt="" width="126" height="139"><span class="tw" style="color:#6cc4f4">Premium Shine</span></span>
           </div>
           <div class="set dup" aria-hidden="true">
-          <span class="tile bare"><img src="img/nn-c.png" alt="" width="415" height="139"></span>
+          <span class="tile bare"><img src="img/rj-logo.png" alt="" width="903" height="278"></span>
           <span class="tile bare"><img class="mk" src="img/nuara-c.png" alt="" width="160" height="118"><span class="tw" style="color:#8f5bff">Nuara</span></span>
           <span class="tile bare"><img src="img/logo-ejt.png" alt="" width="520" height="160"></span>
           <span class="tile bare"><img class="mk" src="img/shine-c.png" alt="" width="126" height="139"><span class="tw" style="color:#6cc4f4">Premium Shine</span></span>
@@ -791,7 +791,7 @@ main,footer{position:relative;z-index:1}
 <rect x="208" y="66" width="80" height="50" rx="6" fill="#181a1f" stroke="rgba(255,255,255,.32)"/>
 <path d="M218 76h9a8 8 0 0 1 8 8v8" fill="none" stroke="#ff5a36" stroke-width="5"/>
 <text x="280" y="84" font-family="Geist Mono,ui-monospace,monospace" font-size="9.5" fill="#ff5a36" text-anchor="end">×20</text>
-<text x="216" y="108" font-family="Geist Mono,ui-monospace,monospace" font-size="9" fill="#ecedee">3/4" Cu 90°</text></svg><div class="cbody"><span class="mono">Distributors</span><h3>Purchase orders read and entered for one-click approval</h3><div><div class="metric">10 min → 40 s</div><span class="dim" style="font-size:.94rem">to enter each purchase order</span></div><span class="go">For distributors</span></div></a>
+<text x="216" y="108" font-family="Geist Mono,ui-monospace,monospace" font-size="9" fill="#ecedee">3/4" Cu 90°</text></svg><div class="cbody"><span class="mono">Distributors</span><h3>Purchase orders read and entered for one-click approval</h3><div><div class="metric">8 min → ~1 min</div><span class="dim" style="font-size:.94rem">to enter each purchase order</span></div><span class="go">For distributors</span></div></a>
       </div>
     </div>
   </section>
@@ -1019,7 +1019,7 @@ main,footer{position:relative;z-index:1}
     <div class="fcols">
       <div><a class="brand" href="#home" style="padding:0 0 10px">Alty Labs</a><p class="dim" style="max-width:34ch">Custom AI systems and software, built inside the tools you already use.</p></div>
       <div><h4>Industries</h4><a href="#dental-labs">Dental labs</a><a href="#land-surveyors">Land surveyors</a><a href="#distributors">Distributors</a></div>
-      <div><h4>Work</h4><a href="#case-studies">Case studies</a><a href="#case-distributor">Near North Supply</a><a href="#case-ejt-fitness">EJT Fitness</a></div>
+      <div><h4>Work</h4><a href="#case-studies">Case studies</a><a href="#case-distributor">RJ Industrial Supply</a><a href="#case-ejt-fitness">EJT Fitness</a></div>
       <div><h4>Company</h4><a href="#what-we-build">What we build</a><a href="#process">Process</a><a href="#roi">ROI calculator</a><a href="#readiness">Readiness check</a></div>
       <div><h4>Connect</h4><a href="#contact">Book a workflow review</a><a id="foot-email" href="#contact" hidden></a></div>
     </div>
@@ -1075,31 +1075,29 @@ function balloon(g, x, y, n, on){
 
 /* ---------- case studies ---------- */
 var cases = [
-  {key:"distributor", banner:["img/nn-storefront.jpg","The Near North Supply building with its logo on the wall"], crumb:"Distribution", client:"A family-owned plumbing and HVAC distributor", name:"Near North Supply", where:"Plumbing and HVAC distributor, Barrie, Ontario", logo:"img/nn-c.png", lw:415, lh:139,
-   title:"How Near North Supply cut order entry from 10 minutes to 40 seconds",
-   summary:"Forty-five purchase orders a day were being typed in by hand. An AI order-intake system now reads them, translates contractor shorthand to exact SKUs and drafts the sales order for one-click approval.",
-   card:{kind:"Plumbing and HVAC distributor, 14 people", title:"Orders that enter themselves", metric:"10 min → 40 s", cap:"to enter each purchase order", rows:[["Photo of a handwritten order","Read"],["3/4 copper 90s x 20","Matched"],["Sales order","Drafted"],["Your approval","1 click"]]},
-   stats:[["35 h","saved every week"],["93% faster","per order"],["~70%","of orders approved with zero edits"]],
-   snap:[["Client","Near North Supply"],["Business","Family-owned plumbing and HVAC supply distributor, Barrie, Ontario"],["Size","~$7M annual revenue, 14 employees"],["Tech stack","QuickBooks Enterprise and Fishbowl Inventory"],["Order volume","~45 customer POs a day (~225 a week, ~11,250 a year), mostly emailed PDFs and smartphone photos of handwritten contractor lists"],["Deployed","3 weeks"]],
+  {key:"distributor", crumb:"Distribution", client:"An industrial supply distributor", name:"RJ Industrial Supply Inc.", where:"Industrial supply distributor, North Bay, Ontario", logo:"img/rj-logo.png", lw:903, lh:278, tile:true,
+   title:"How RJ Industrial Supply cut PO entry from 8 minutes to about a minute",
+   summary:"About fifty purchase orders a day were being typed in by hand. An AI order-intake system now reads them, translates shorthand to exact SKUs and drafts the sales order in NetSuite for one-click approval.",
+   card:{kind:"Industrial supply distributor, North Bay", title:"Orders that enter themselves", metric:"8 min → ~1 min", cap:"to enter each purchase order", rows:[["Photo of a handwritten order","Read"],["3/4 copper 90s x 20","Matched"],["Sales order","Drafted"],["Your approval","1 click"]]},
+   stats:[["28 h","saved every week"],["85% faster","per order"],["5 weeks","to deploy on NetSuite"]],
+   snap:[["Client","RJ Industrial Supply Inc."],["Business","Industrial supply distributor, North Bay, Ontario"],["Tech stack","NetSuite"],["Order volume","~50 customer POs a day (~250 a week), mostly emailed PDFs and smartphone photos of handwritten lists"],["Deployed","5 weeks"]],
    body:[
     {h:"The bottleneck", ul:[
-      ["7.5 hours a day lost to typing.","At ~10 minutes per PO across 45 orders a day, manual order entry consumed 37.5 hours a week (~1,875 hours a year), nearly a full-time person's entire workweek spent just keying data."],
-      ["Leadership trapped in admin.","One inside sales rep and the owner's daughter keyed in every order, while the owner regularly spent evenings, often past 7:00 PM, entering backlog POs himself instead of selling or managing operations."],
-      ["Costly picking and delivery errors.","Manual transcription of handwritten contractor shorthand led to wrong fittings and sizes, causing ~3 re-deliveries a week (~150+ wasted truck runs a year) and frustrated contractors."]]},
-    {h:"What we built", p:["Deployed in 3 weeks on top of their existing QuickBooks Enterprise and Fishbowl setup, with full client ownership and zero per-order fees."], ul:[
-      ["Multi-format intake.","Reads emailed PDFs and phone photos of handwritten contractor orders automatically."],
-      ["Contractor shorthand translation.","Maps trade shorthand, such as “3/4 copper 90s x 20”, directly to exact SKUs in their item catalog."],
-      ["One-click QuickBooks drafting.","Builds the complete sales order inside QuickBooks for rapid human review and one-click approval."]], fig:"pipe"},
+      ["About 6.7 hours a day lost to typing.","At ~8 minutes per PO across about 50 orders a day, manual order entry consumed about 33.5 hours a week."]]},
+    {h:"What we built", p:["Deployed in about 5 weeks on top of their existing NetSuite setup, with full client ownership and zero per-order fees."], ul:[
+      ["Multi-format intake.","Reads emailed PDFs and phone photos of handwritten orders automatically."],
+      ["Shorthand translation.","Maps trade shorthand, such as “3/4 copper 90s x 20”, directly to exact SKUs in their item catalog."],
+      ["One-click NetSuite drafting.","Builds the complete sales order inside NetSuite for human review and one-click approval."]], fig:"pipe"},
     {h:"Inside the system", p:["Take the intake system apart step by step. Dark blocks are drafted by the system. The light block is a person's decision."], fig:"model"},
-    {h:"Results after 60 days", fig:"table"}],
+    {h:"Results", fig:"table"}],
    cols:["Operational metric","Before","After","Net impact"],
-   rows:[["Order entry time per PO","~10 minutes","~40 seconds (review)","93% faster per order"],["Daily order-entry load (45 POs/day)","7.5 hours/day (37.5 hrs/wk)","30 minutes/day (2.5 hrs/wk)","35 hours/week saved (~1,750 hrs/yr)"],["Touchless order accuracy","100% manual keying","~70% approved with zero edits","Most POs need only a quick glance"],["Error-driven re-deliveries","~3 per week (~150/yr)","Fewer than 1 per week","70%+ drop in wasted truck runs"],["Owner evening data entry","Entering POs at 7:00 PM on busy days","0 hours","Owner out of order entry"]],
-   pipe:[["Order in","Emailed PDF or a phone photo of a handwritten list"],["Read","Lines, quantities and customer picked out"],["Matched","Shorthand mapped to exact SKUs in the catalog"],["Drafted","Complete sales order built inside QuickBooks"],["Approved","~40 seconds of review. ~70% need zero edits"]],
+   rows:[["Order entry time per PO","~8 minutes","~1 to 1.5 minutes (review)","85% faster per order"],["Daily order-entry load (50 POs/day)","~6.7 hours/day (~33.5 hrs/wk)","~1.1 hours/day (~5.5 hrs/wk)","28 hours/week saved"]],
+   pipe:[["Order in","Emailed PDF or a phone photo of a handwritten list"],["Read","Lines, quantities and customer picked out"],["Matched","Shorthand mapped to exact SKUs in the catalog"],["Drafted","Complete sales order built inside NetSuite"],["Approved","Reviewed in about 1 to 1.5 minutes and approved with one click"]],
    steps:[
-    {t:"Order in", b:"~45 POs a day, each keyed in by hand at ~10 minutes.", a:"Reads emailed PDFs and phone photos of handwritten contractor orders automatically."},
-    {t:"Match items", b:"Shorthand transcribed by hand. Wrong fittings and sizes caused ~3 re-deliveries a week.", a:"Maps trade shorthand such as “3/4 copper 90s x 20” to exact SKUs in their item catalog."},
-    {t:"Sales order", b:"Typed into QuickBooks line by line.", a:"Builds the complete sales order inside QuickBooks, on the setup they already had."},
-    {t:"Approve", h:1, b:"There was no review step. Every order was manual keying.", a:"A person reviews each order in ~40 seconds and approves with one click. ~70% need zero edits."}]},
+    {t:"Order in", b:"~50 POs a day, each keyed in by hand at ~8 minutes.", a:"Reads emailed PDFs and phone photos of handwritten orders automatically."},
+    {t:"Match items", b:"Shorthand transcribed by hand.", a:"Maps trade shorthand such as “3/4 copper 90s x 20” to exact SKUs in their item catalog."},
+    {t:"Sales order", b:"Typed into NetSuite line by line.", a:"Builds the complete sales order inside NetSuite, on the setup they already had."},
+    {t:"Approve", h:1, b:"There was no review step. Every order was manual keying.", a:"A person reviews each order in about 1 to 1.5 minutes and approves with one click."}]},
 
   {key:"ejt-fitness", banner:["img/ejt-card.jpg","The EJT Fitness client app on a phone"], crumb:"Fitness and coaching", client:"EJT Fitness", name:"EJT Fitness", where:"Online fitness and coaching agency", logo:"img/logo-ejt.png", lw:520, lh:160,
    title:"How EJT Fitness launched a custom coaching app to scale beyond 110 clients and unlock online revenue",
@@ -1249,7 +1247,7 @@ function heroDist(){
     rows.map(function(r,i){ var y = 96+i*28, d = .7+i*.6; return "<g class='h-in' style='--d:"+d+"s'><text x='244' y='"+y+"' "+M+" font-size='9.5' fill='#ecedee'>"+esc(r[0])+"</text><text x='326' y='"+y+"' font-size='10.5' fill='#c5c7cc'>"+esc(r[1])+"</text><text x='494' y='"+y+"' "+M+" font-size='10.5' fill='#ecedee' text-anchor='end'>"+r[2]+"</text></g>"; }).join("")+
     "<path d='M244 236H494' stroke='rgba(255,255,255,.12)'/>"+
     "<g class='pulse' style='--d:4s'><rect x='244' y='244' width='164' height='22' rx='11' fill='#ecedee'/><text x='326' y='259' font-size='10.5' font-weight='600' fill='#0a0b0d' text-anchor='middle'>Approve order</text></g>"+
-    "<text class='h-in' style='--d:4s' x='494' y='259' "+M+" font-size='10' fill='#ff5a36' text-anchor='end'>40 s review</text></svg>";
+    "<text class='h-in' style='--d:4s' x='494' y='259' "+M+" font-size='10' fill='#ff5a36' text-anchor='end'>~1 min review</text></svg>";
   return hfigWrap("Handwritten order to sales order", s);
 }
 var HERO = {"dental-labs":heroDental, "land-surveyors":heroSurvey, "distributors":heroDist};
@@ -1286,7 +1284,7 @@ function drawLanes(svg, steps, st, after, onSel){
 }
 function drawFlow(svg, steps, st, after, onSel){
   var n = steps.length, x0 = 70, x1 = 470, gap = (x1-x0)/(n-1), y = 170;
-  svg.appendChild(el("text",{x:"270",y:"58","text-anchor":"middle","font-size":"30","font-weight":"600",style:"fill:"+(after?ACC:TXT)+";letter-spacing:-.03em;font-family:var(--sans)"},after?"40 s":"10 min"));
+  svg.appendChild(el("text",{x:"270",y:"58","text-anchor":"middle","font-size":"30","font-weight":"600",style:"fill:"+(after?ACC:TXT)+";letter-spacing:-.03em;font-family:var(--sans)"},after?"~1 min":"8 min"));
   svg.appendChild(el("text",{x:"270",y:"80","text-anchor":"middle","font-size":"10.5",style:"fill:"+DIM},after?"per order, reviewed and approved":"per order, typed by hand"));
   svg.appendChild(el("rect",{x:String(x0-30),y:String(y-6),width:String(x1-x0+60),height:"12",rx:"6",fill:"rgba(255,255,255,.04)",stroke:"rgba(255,255,255,.12)","stroke-dasharray":after?"":"4 3"}));
   if (after){ var pk = el("g",{class:"pkt"}); pk.appendChild(el("rect",{x:String(x0-22),y:String(y-22),width:"26",height:"18",rx:"3",fill:TXT})); pk.appendChild(el("path",{d:"M"+(x0-17)+" "+(y-16)+"h16M"+(x0-17)+" "+(y-11)+"h10",stroke:BG,"stroke-width":"1.6"})); svg.appendChild(pk); }
@@ -1350,11 +1348,11 @@ var kinds = [
   {n:"Research and knowledge systems", d:"An agent gathers records and past work from the places your team would search, and returns a summary with its sources.",
    who:"Land surveyors", what:"Reads parcel registers, plans and instruments, searches the firm's archive, drafts records requests and assembles a research brief with every line linked to its source.", href:"land-surveyors",
    fit:"Jobs begin with hours of looking things up.", not:"The records are not yet somewhere software can reach."},
-  {n:"Document and order intake", stat:"Order entry cut from 10 minutes to 40 seconds. 35 hours a week saved.", d:"Emails, PDFs and photos of handwriting are read, matched to your own items and records, and drafted as entries for approval.",
-   who:"A plumbing and HVAC distributor", what:"Reads emailed PDFs and photos of handwritten orders, maps contractor shorthand to exact SKUs and drafts the sales order. Entry went from ~10 minutes to ~40 seconds.", href:"case-distributor",
+  {n:"Document and order intake", stat:"Order entry cut from 8 minutes to about a minute. 28 hours a week saved.", d:"Emails, PDFs and photos of handwriting are read, matched to your own items and records, and drafted as entries for approval.",
+   who:"An industrial supply distributor", what:"Reads emailed PDFs and photos of handwritten orders, maps shorthand to exact SKUs and drafts the sales order in NetSuite. Entry went from ~8 minutes to about 1 to 1.5 minutes.", href:"case-distributor",
    fit:"Someone keys in orders or documents every day, and mistakes are costly.", not:"Volumes are low enough that typing it in is cheaper."},
-  {n:"System integrations", stat:"Live in 3 weeks on existing accounting and inventory software. Zero per-order fees.", d:"Part of every build. The system reads from and writes to the software you already run, so nothing is entered twice.",
-   who:"A plumbing and HVAC distributor", what:"Sales orders are built directly inside the QuickBooks Enterprise and Fishbowl setup they already had.", href:"case-distributor",
+  {n:"System integrations", stat:"Live in 5 weeks on existing accounting and inventory software. Zero per-order fees.", d:"Part of every build. The system reads from and writes to the software you already run, so nothing is entered twice.",
+   who:"An industrial supply distributor", what:"Sales orders are built directly inside the NetSuite setup they already had.", href:"case-distributor",
    fit:"The same details are typed into more than one system.", not:"A system cannot export or connect. Replace it first."}
 ];
 var kSel = 1, plates = [];
@@ -1818,22 +1816,22 @@ var inds = {
     lede:"Emailed POs and phone photos of handwritten contractor lists, read, matched to your exact SKUs, and drafted as sales orders in your accounting software for one-click approval.",
     chips:["Emailed PDF POs","Handwritten order photos","Contractor shorthand","SKU matching","Sales order drafts","One-click approval"],
     wf:{title:"new purchase order", src:"New order", tools:["Email and photos","Item catalog","Accounting","Your approval"],
-      feed:[["Read a photographed order list","0","Done"],["Matched “3/4 copper 90s x 20” to a SKU","1","Matched"],["Matched the remaining lines","1","Done"],["Sales order drafted in QuickBooks","2","Drafted"],["Waiting for one-click approval","3","Needs you"]]},
-    stats:[["10 min → 40 s","to enter each purchase order"],["35 h a week","of order entry saved"],["~70%","of orders approved with zero edits"]],
+      feed:[["Read a photographed order list","0","Done"],["Matched “3/4 copper 90s x 20” to a SKU","1","Matched"],["Matched the remaining lines","1","Done"],["Sales order drafted in NetSuite","2","Drafted"],["Waiting for one-click approval","3","Needs you"]]},
+    stats:[["8 min → ~1 min","to enter each purchase order"],["28 h a week","of order entry saved"],["85% faster","per order"]],
     painH:"Where the hours go at the order desk",
-    pains:[["Hours a day lost to typing","At around 10 minutes per PO, a desk taking 45 orders a day spends 7.5 hours just keying data."],["Leadership trapped in admin","Owners and senior staff end up entering backlog orders in the evening instead of selling or running operations."],["Wrong parts, second trucks","Handwritten shorthand transcribed by hand leads to wrong fittings and sizes, and every mistake is another delivery."]],
+    pains:[["Hours a day lost to typing","At around 8 minutes per PO, a desk taking 50 orders a day spends about 6.7 hours just keying data."],["Every order typed by hand","Emailed PDFs and phone photos of handwritten lists are keyed into the accounting system line by line."],["Shorthand has to be translated","Trade shorthand has to be mapped to exact SKUs by hand before the sales order is complete."]],
     steps:"dist", stepsNote:"Dark blocks are done by the system. The light block is a person's approval.",
     checksH:"What the system handles", checksP:"It works the way contractors actually order.",
-    checks:[["Emailed PDF purchase orders","Read automatically as they arrive."],["Photos of handwritten lists","Smartphone photos of contractor order lists are read too."],["Contractor shorthand","Trade shorthand such as “3/4 copper 90s x 20” is mapped to exact SKUs in your catalog."],["Complete sales orders","Built inside your accounting software, ready for review and one-click approval."],["Runs on what you have","Our case study runs on QuickBooks Enterprise and Fishbowl Inventory."],["Yours to own","Full client ownership and zero per-order fees."]],
+    checks:[["Emailed PDF purchase orders","Read automatically as they arrive."],["Photos of handwritten lists","Smartphone photos of contractor order lists are read too."],["Contractor shorthand","Trade shorthand such as “3/4 copper 90s x 20” is mapped to exact SKUs in your catalog."],["Complete sales orders","Built inside your accounting software, ready for review and one-click approval."],["Runs on what you have","Our case study runs on NetSuite."],["Yours to own","Full client ownership and zero per-order fees."]],
     build:["Reading emailed PDFs and order photos","Mapping shorthand to exact SKUs","Drafting complete sales orders in your accounting software","Connecting to your existing inventory setup"],
     stay:["Approving every order","Pricing and customer terms","Customer relationships","Picking and delivery"],
-    proof:{type:"case", key:"dist", link:"case-distributor", h:"Near North Supply cut order entry from 10 minutes to 40 seconds"},
+    proof:{type:"case", key:"dist", link:"case-distributor", h:"RJ Industrial Supply cut PO entry from 8 minutes to about a minute"},
     fit:"You enter dozens of orders a day by hand from emails, PDFs and paper.",
     notfit:"Most of your orders already arrive through EDI or a customer portal.",
-    faq:[["Do we have to change our accounting or inventory software?","No. The system builds on what you already run. At the distributor in our case study, that was QuickBooks Enterprise and Fishbowl Inventory."],
+    faq:[["Do we have to change our accounting or inventory software?","No. The system builds on what you already run. At the distributor in our case study, that was NetSuite."],
          ["Are there per-order fees?","No. You own the system, and there are zero per-order fees."],
-         ["What about messy handwriting and contractor shorthand?","The system reads phone photos of handwritten lists and maps trade shorthand to your exact SKUs. A person reviews and approves every order; at our case study distributor, about 70% go through with zero edits."],
-         ["How long does it take?","The distributor in our case study was live in 3 weeks."]]}
+         ["What about messy handwriting and contractor shorthand?","The system reads phone photos of handwritten lists and maps trade shorthand to your exact SKUs. A person reviews and approves every order."],
+         ["How long does it take?","The distributor in our case study was live in about 5 weeks."]]}
 };
 function caseBy(k){ for (var i=0;i<cases.length;i++) if (cases[i].key===k) return cases[i]; }
 var CASEKEY = {dist:"distributor"};
