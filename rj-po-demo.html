@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PO to NetSuite Workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a 1280×720 "recording" (wallpaper + browser window) moved by a virtual camera and cursor on one timeline; stepper above, step words below. */
+:root{
+  --bg:#EDEFF3; --surface:#FFFFFF; --ink:#172030; --muted:#5A6578; --line:#D3D9E2;
+  --accent:#2C54D6; --on-accent:#FFFFFF;
+  --font-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1218; --surface:#1D2431; --ink:#E5E9F0; --muted:#98A2B3; --line:#323C4C;
+    --accent:#7F9CFF; --on-accent:#0E1218; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1218; --surface:#1D2431; --ink:#E5E9F0; --muted:#98A2B3; --line:#323C4C;
+  --accent:#7F9CFF; --on-accent:#0E1218; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.page{max-width:1120px;margin:0 auto;padding:28px 20px 40px;display:grid;gap:18px}
+header h1{font-size:28px;line-height:1.15;margin:0 0 4px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:15px;max-width:72ch}
+
+.stepper{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;list-style:none;margin:0;padding:0}
+.stepper::before,.stepper .fill{content:"";position:absolute;top:15px;left:calc(100%/14);right:calc(100%/14);height:2px;background:var(--line);z-index:0}
+.stepper .fill{background:var(--accent);right:auto;width:0}
+.stepper li{position:relative;z-index:1}
+.stepper button{all:unset;cursor:pointer;display:grid;justify-items:center;gap:6px;width:100%;text-align:center;border-radius:8px;padding:0 2px 4px}
+.stepper button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stepper .dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--surface);border:2px solid var(--line);color:var(--muted);transition:all .25s ease}
+.stepper .lbl{font-size:13px;color:var(--muted);line-height:1.25}
+.stepper li.done .dot{border-color:var(--accent);color:var(--accent)}
+.stepper li.on .dot{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.stepper li.on .lbl{color:var(--ink);font-weight:600}
+
+.stage-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#C9B6E4;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;transform:scale(var(--s,1))}
+
+.below{display:grid;grid-template-columns:1fr auto;gap:16px 28px;align-items:start}
+.cap .kicker{font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.02em}
+.cap h2{margin:2px 0 6px;font-size:22px;line-height:1.25;text-wrap:balance}
+.cap p{margin:0;max-width:68ch}
+.cap ul{margin:6px 0 0;padding-left:20px;max-width:68ch}
+.cap li{margin:2px 0}
+.controls{display:flex;gap:8px;align-items:center}
+.controls button{font:600 14px var(--font-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;height:38px;padding:0 14px;cursor:pointer}
+.controls button:hover{border-color:var(--accent)}
+.controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.controls button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);min-width:92px}
+.timebar{grid-column:1/-1;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.timebar i{display:block;height:100%;width:0;background:var(--accent)}
+.note{font-size:13px;color:var(--muted);margin:0}
+@media (max-width:640px){
+  .below{grid-template-columns:1fr}
+  .stepper .lbl{font-size:11px}
+  .stepper .dot{width:28px;height:28px;font-size:13px}
+  .stepper::before,.stepper .fill{top:13px}
+  header h1{font-size:23px}
+}
+
+/* ================= Recording (single visual world, fixed light UI) ================= */
+.cam{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0}
+.wall{position:absolute;inset:0;background:
+  radial-gradient(900px 600px at 8% 10%, #FFD3B6 0%, transparent 60%),
+  radial-gradient(800px 700px at 95% 95%, #8EA2F6 0%, transparent 60%),
+  radial-gradient(700px 500px at 70% 15%, #F3A6C8 0%, transparent 60%),
+  linear-gradient(135deg,#F7C6B0,#B9A3EE)}
+.win{position:absolute;left:64px;top:36px;width:1152px;height:648px;border-radius:12px;overflow:hidden;background:#fff;
+  box-shadow:0 0 0 1px rgba(0,0,0,.12), 0 30px 60px -10px rgba(40,20,80,.45), 0 12px 24px -8px rgba(40,20,80,.3)}
+.notrans *,.notrans *::before,.notrans *::after{transition:none !important}
+
+/* state helpers */
+.v:not(.on){display:none !important}
+.in{opacity:0;transform:translateY(6px);transition:opacity .35s ease, transform .35s ease}
+.in.on{opacity:1;transform:none}
+.ins{max-height:0;overflow:hidden;transition:max-height .55s cubic-bezier(.2,.7,.2,1)}
+.ins.on{max-height:140px}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.paused .spin{animation-play-state:paused}
+
+/* browser chrome */
+.chrome{position:absolute;left:0;right:0;top:0;height:80px;font-family:Inter, system-ui, sans-serif}
+.tabs{height:40px;background:#DFE3E8;display:flex;align-items:flex-end;padding-left:86px;gap:0;position:relative}
+.lights{position:absolute;left:16px;top:14px;display:flex;gap:8px}
+.lights i{width:12px;height:12px;border-radius:50%;display:block}
+.tab{width:236px;height:33px;border-radius:9px 9px 0 0;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:12px;color:#3C4043;position:relative}
+.tab + .tab::before{content:"";position:absolute;left:0;top:9px;height:16px;width:1px;background:#A9AEB5}
+.tab.active{background:#fff;color:#1F1F1F}
+.tab.active::before,.tab.active + .tab::before{display:none}
+.tab .fav{width:16px;height:16px;border-radius:4px;flex:none;display:grid;place-items:center;font:700 9px Inter;color:#fff}
+.tab .tt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .x{color:#5F6368;font-size:13px}
+#tab3:not(.show){display:none}
+.newtab{width:28px;height:28px;display:grid;place-items:center;color:#5F6368;font-size:18px;margin:0 0 2px 6px}
+.toolbar{height:40px;background:#fff;display:flex;align-items:center;gap:14px;padding:0 14px;border-bottom:1px solid #DADCE0;color:#5F6368}
+.toolbar .nav{display:flex;gap:14px;font-size:15px}
+.url{flex:1;height:28px;border-radius:14px;background:#F1F3F4;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:13px;color:#202124;white-space:nowrap;overflow:hidden}
+.url .p{color:#5F6368}
+.toolbar .me{width:24px;height:24px;border-radius:50%;background:#3B6E5A;color:#fff;display:grid;place-items:center;font:600 10px Inter}
+.content{position:absolute;left:0;right:0;top:80px;bottom:0;overflow:hidden;background:#fff}
+.view{position:absolute;inset:0;visibility:hidden}
+.view.show{visibility:visible}
+
+/* cursor + click */
+.cursor{position:absolute;left:0;top:0;width:24px;height:30px;z-index:50;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.rip{position:absolute;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(40,90,255,.35);border:2px solid rgba(40,90,255,.6);z-index:49;opacity:0;pointer-events:none}
+
+/* ---------------- Mail (web mail client) ---------------- */
+#v-mail{font-family:"Source Sans 3", "Segoe UI", system-ui, sans-serif;color:#242424;font-size:14px}
+.m-top{height:44px;background:#0F6CBD;color:#fff;display:flex;align-items:center;gap:14px;padding:0 14px}
+.waffle{display:grid;grid-template-columns:repeat(3,3px);gap:3px}
+.waffle i{width:3px;height:3px;background:#fff;border-radius:1px}
+.m-top .app{font-weight:600;font-size:16px;width:200px}
+.m-search{width:420px;height:30px;border-radius:4px;background:#fff;color:#616161;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:14px}
+.m-top .sp{flex:1}
+.m-top .ico{width:18px;height:18px;border:1.6px solid rgba(255,255,255,.85);border-radius:4px}
+.m-top .av{width:30px;height:30px;border-radius:50%;background:#C4E1D3;color:#0B3B2C;display:grid;place-items:center;font-weight:700;font-size:12px}
+.m-cmd{height:40px;border-bottom:1px solid #E0E0E0;display:flex;align-items:center;gap:18px;padding:0 16px 0 60px;font-size:14px;color:#242424}
+.m-cmd .new{background:#0F6CBD;color:#fff;font-weight:600;padding:5px 14px;border-radius:4px}
+.m-cmd span.g{color:#616161}
+.m-body{position:absolute;top:84px;left:0;right:0;bottom:0;display:grid;grid-template-columns:48px 214px 372px 1fr}
+.m-rail{background:#F5F5F5;border-right:1px solid #E6E6E6;display:grid;align-content:start;justify-items:center;gap:18px;padding-top:14px}
+.m-rail i{width:20px;height:18px;border:1.6px solid #616161;border-radius:3px;display:block}
+.m-rail i.on{border-color:#0F6CBD;background:#DCEBF8}
+.m-fold{background:#FAFAFA;border-right:1px solid #E6E6E6;padding:10px 8px;font-size:14px}
+.m-fold .acct{font-weight:700;padding:8px 8px 6px;font-size:13.5px;display:flex;gap:6px;align-items:center}
+.m-fold .f{display:flex;justify-content:space-between;padding:6px 10px 6px 22px;border-radius:4px;color:#242424}
+.m-fold .f.sel{background:#E1EAF5;font-weight:700}
+.m-fold .f b{color:#0F6CBD}
+.m-list{border-right:1px solid #E6E6E6;overflow:hidden}
+.m-lh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px}
+.m-lh h3{margin:0;font-size:18px;font-weight:700}
+.m-tabs{display:flex;gap:18px;padding:4px 16px 0;border-bottom:1px solid #E6E6E6;font-size:14px}
+.m-tabs span{padding:6px 0 8px;color:#616161}
+.m-tabs span.on{color:#242424;font-weight:600;box-shadow:inset 0 -2px 0 #0F6CBD}
+.mi{display:grid;grid-template-columns:1fr auto;gap:0 8px;padding:9px 16px 10px 20px;border-bottom:1px solid #EDEDED;position:relative;background:#fff}
+.mi .fr{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi .tm{font-size:12.5px;color:#616161;align-self:center}
+.mi .su{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;gap:6px;align-items:center}
+.mi .clip{color:#616161;font-size:12px}
+.mi .pr{grid-column:1/-1;font-size:13px;color:#616161;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi.unread::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#0F6CBD}
+.mi.unread .fr{font-weight:700}
+.mi.unread .su{color:#0F6CBD;font-weight:600}
+#m-new .mi.sel{background:#CFE4FA}
+#m-new.read .mi::before{display:none}
+#m-new.read .mi .fr{font-weight:400}
+#m-new.read .mi .su{color:#242424;font-weight:400}
+.m-read{position:relative;overflow:hidden;background:#fff}
+.m-empty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:6px;color:#616161;font-size:15px}
+.m-empty .env{width:84px;height:60px;border:2px solid #C8C8C8;border-radius:6px;position:relative;margin-bottom:8px}
+.m-empty .env::after{content:"";position:absolute;left:8px;right:8px;top:-2px;height:30px;border-bottom:2px solid #C8C8C8;border-left:2px solid transparent;transform:skewY(0);clip-path:polygon(0 0,100% 0,50% 100%);background:#C8C8C8;opacity:.5}
+.m-open{position:absolute;inset:0;padding:18px 26px}
+.m-open h2{font-size:20px;font-weight:600;margin:0 0 14px}
+.m-from{display:grid;grid-template-columns:40px 1fr auto;gap:0 12px;align-items:center}
+.m-from .av{width:40px;height:40px;border-radius:50%;background:#8764B8;color:#fff;display:grid;place-items:center;font-weight:600;font-size:15px;grid-row:1/3}
+.m-from .nm{font-size:15px;grid-column:2;grid-row:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-from .nm b{font-weight:600}
+.m-from .nm span{color:#616161}
+.m-from .to{font-size:13px;color:#616161;grid-column:2;grid-row:2}
+.m-from .dt{font-size:13px;color:#616161;grid-column:3;grid-row:1/3;align-self:start;white-space:nowrap}
+.m-att{margin:16px 0 18px;width:270px;height:56px;border:1px solid #D1D1D1;border-radius:6px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#fff;transition:background .2s, border-color .2s}
+.m-att.hov{background:#F5F5F5;border-color:#B3B3B3}
+.pdfi{width:26px;height:32px;border-radius:3px;background:#D13438;color:#fff;font:700 8px Inter;display:grid;place-items:end center;padding-bottom:4px;flex:none;position:relative}
+.pdfi::before{content:"";position:absolute;right:0;top:0;border:5px solid;border-color:#fff #fff #F0A6A8 #F0A6A8}
+.m-att .n{font-size:14px;font-weight:600}
+.m-att .s{font-size:12.5px;color:#616161}
+.m-txt{font-size:15px;line-height:1.55;color:#242424}
+.m-txt p{margin:0 0 12px}
+.m-toast{position:absolute;right:16px;top:52px;width:330px;background:#fff;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.06);padding:12px 14px;display:grid;grid-template-columns:32px 1fr;gap:2px 10px;z-index:5}
+.m-toast .av{width:32px;height:32px;border-radius:50%;background:#8764B8;color:#fff;display:grid;place-items:center;font-weight:600;font-size:12px;grid-row:1/4}
+.m-toast b{font-size:14px}
+.m-toast .s{font-size:13.5px}
+.m-toast .p{font-size:13px;color:#616161;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------------- Order Desk (review app) ---------------- */
+#v-desk{font-family:Inter, system-ui, sans-serif;color:#111827;font-size:13px;display:grid;grid-template-columns:216px 1fr}
+.sb{background:#F9FAFB;border-right:1px solid #E5E7EB;display:flex;flex-direction:column;padding:14px 10px;gap:2px}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 6px 14px}
+.brand .lg{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#1F3A5F,#2E6B8A);display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px}
+.brand b{display:block;font-size:14px}
+.brand span{font-size:11.5px;color:#6B7280}
+.nv{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;color:#374151;font-size:13px}
+.nv i{width:14px;height:14px;border:1.6px solid #9CA3AF;border-radius:3px;flex:none}
+.nv .c{margin-left:auto;font-size:11.5px;color:#6B7280;font-weight:500}
+.nv.sel{background:#EEF2FF;color:#1E1B4B;font-weight:600}
+.nv.sel i{border-color:#4F46E5}
+.nv .c.y{background:#FEF3C7;color:#92400E;padding:0 6px;border-radius:9px}
+.sbh{font-size:11px;font-weight:600;color:#9CA3AF;letter-spacing:.04em;text-transform:uppercase;padding:14px 8px 6px}
+.mbx{display:flex;align-items:center;gap:8px;padding:5px 8px;font-size:12.5px;color:#374151}
+.live{width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 0 3px #D1FAE5;flex:none}
+.sb .bot{margin-top:auto;display:grid;gap:8px}
+.conn{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px}
+.conn b{font-weight:600}
+.usr{display:flex;align-items:center;gap:8px;padding:4px 6px;font-size:12.5px}
+.usr .a{width:24px;height:24px;border-radius:50%;background:#3B6E5A;color:#fff;font-size:10px;font-weight:600;display:grid;place-items:center}
+.main{position:relative;overflow:hidden}
+.sub{position:absolute;inset:0;visibility:hidden}
+.sub.show{visibility:visible}
+
+/* queue */
+.qh{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px 12px}
+.qh h1{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.qh p{margin:3px 0 0;color:#6B7280;font-size:12.5px}
+.qh .st{display:flex;gap:8px;align-items:center;color:#6B7280;font-size:12px;margin-top:6px}
+.flt{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid #E5E7EB}
+.flt span{padding:8px 10px 10px;font-size:13px;color:#6B7280;display:flex;gap:6px;align-items:center;font-weight:500}
+.flt span.act{color:#111827;box-shadow:inset 0 -2px 0 #111827}
+.flt .n{font-size:11.5px;background:#F3F4F6;color:#374151;padding:0 6px;border-radius:9px}
+.flt .d{width:7px;height:7px;border-radius:50%}
+.qt{margin:0 24px}
+.qr{display:grid;grid-template-columns:160px 1.45fr .7fr 1.5fr .4fr .8fr 1fr;gap:10px;align-items:center;padding:0 10px;min-height:52px;border-bottom:1px solid #F0F1F3;font-size:13px;position:relative}
+.qr.hd{min-height:34px;font-size:11.5px;color:#6B7280;font-weight:500}
+.qr .r{text-align:right}
+.qr .mute{color:#6B7280}
+.qr .sm{display:block;font-size:11.5px;color:#6B7280;white-space:nowrap}
+.qwrap{transition:max-height .45s ease, opacity .3s ease;max-height:60px;overflow:hidden}
+.qwrap.hide{max-height:0;opacity:0}
+.qwrap.ins{max-height:0}
+.qwrap.ins.on{max-height:60px}
+.qr.flash{background:#EEF2FF}
+.qr{transition:background .6s ease}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.badge .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+.b-g{background:#ECFDF5;color:#047857}
+.b-y{background:#FFFBEB;color:#B45309;box-shadow:inset 0 0 0 1px #FCD34D}
+.b-b{background:#EFF6FF;color:#1D4ED8}
+.b-n{background:#F3F4F6;color:#4B5563}
+.b-s{background:#F5F3FF;color:#5B21B6}
+.why{display:block;font-size:11.5px;color:#B45309;margin-top:2px;font-weight:500}
+.fchip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px}
+.ft{font:700 9px Inter;color:#fff;padding:2px 4px;border-radius:3px}
+.ft.p{background:#DC2626}.ft.x{background:#15803D}.ft.e{background:#64748B}
+.saved{display:inline-flex;gap:4px;align-items:center;color:#047857;font-size:11.5px}
+.qr .k1{display:none}
+.qr.known .k0{display:none}
+.qr.known .k1{display:inline}
+
+/* toasts */
+.toast{position:absolute;right:20px;bottom:20px;width:350px;background:#111827;color:#F9FAFB;border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:22px 1fr;gap:3px 10px;box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:20;font-size:12.5px}
+.toast .ok{width:20px;height:20px;border-radius:50%;background:#10B981;display:grid;place-items:center;font-size:11px;font-weight:700;grid-row:1/3}
+.toast b{font-size:13px;font-weight:600}
+.toast .s{color:#9CA3AF}
+.toast .act{grid-column:2;display:flex;gap:12px;margin-top:6px}
+.toast .act span{color:#A5B4FC;font-weight:600}
+
+/* detail */
+.dh{height:60px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:12px;padding:0 18px 0 12px}
+.back{color:#4B5563;font-size:13px;font-weight:500;white-space:nowrap;display:flex;gap:4px;align-items:center;padding:5px 8px;border-radius:6px}
+.dh .div{width:1px;height:26px;background:#E5E7EB}
+.dh .t b{font-size:16px;font-weight:600;display:block;line-height:1.2}
+.dh .t span{font-size:12px;color:#6B7280;white-space:nowrap}
+.dh .gap{flex:1}
+.btn{height:32px;border-radius:7px;padding:0 13px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px;border:1px solid #D1D5DB;background:#fff;color:#374151;white-space:nowrap}
+.btn.pri{background:#4F46E5;border-color:#4F46E5;color:#fff;transition:opacity .3s, background .3s}
+.btn.pri.dis{opacity:.4}
+.btn.pri.done{background:#059669;border-color:#059669}
+.appr .a1,.appr .a2{display:none}
+.appr.busy .a0,.appr.done .a0{display:none}
+.appr.busy .a1,.appr.done .a2{display:inline-flex;gap:7px;align-items:center}
+.dbody{position:absolute;top:60px;left:0;right:0;bottom:0;display:grid;grid-template-columns:420px 1fr}
+.pdfv{background:#525659;display:flex;flex-direction:column;overflow:hidden}
+.pdf-tb{height:34px;background:#323639;color:#E8EAED;display:flex;align-items:center;gap:14px;padding:0 12px;font-size:12px;flex:none}
+.pdf-tb .gap{flex:1}
+.pdf-sc{flex:1;display:grid;place-items:start center;padding:14px 0;overflow:hidden}
+.paper{width:384px;background:#fff;color:#1E2430;box-shadow:0 2px 8px rgba(0,0,0,.4);padding:20px 20px 18px;font:10px/1.4 Arimo, Arial, sans-serif;position:relative;overflow:hidden}
+.paper .ph1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.paper .co{font-weight:700;font-size:12.5px}
+.paper .co small{display:block;font-weight:400;font-size:9px;color:#5B6372}
+.paper .ttl{font-weight:700;font-size:15px;letter-spacing:.08em;text-align:right;line-height:1.15}
+.paper .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.paper dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0}
+.paper dt{color:#5B6372}
+.paper dd{margin:0;font-weight:700}
+.paper .lab{font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#5B6372;margin-bottom:2px}
+.paper table{width:100%;border-collapse:collapse}
+.paper th{font-size:8px;letter-spacing:.06em;text-align:left;color:#5B6372;border-bottom:1.5px solid #1E2430;padding:3px}
+.paper td{padding:5px 3px;border-bottom:1px solid #D9DDE3}
+.paper .r{text-align:right}
+.paper .tot{display:flex;justify-content:flex-end;gap:16px;margin-top:8px;font-weight:700}
+.paper .sig{margin-top:12px;color:#5B6372;font-size:9px}
+.f{position:relative}
+.hl{position:absolute;inset:-3px -4px;border:2px solid #4F46E5;background:rgba(79,70,229,.12);border-radius:3px;opacity:0;transition:opacity .25s ease;pointer-events:none}
+.hl.on{opacity:1}
+.hl.w{border-color:#F59E0B;background:rgba(245,158,11,.18)}
+.hlr{position:absolute;left:-4px;top:1px;width:352px;height:22px;border:2px solid #4F46E5;background:rgba(79,70,229,.12);border-radius:3px;opacity:0;transition:opacity .25s ease;pointer-events:none}
+.hlr.on{opacity:1}
+.hlr.w{border-color:#F59E0B;background:rgba(245,158,11,.2)}
+.beam{position:absolute;left:0;right:0;top:0;height:50px;background:linear-gradient(to bottom, rgba(79,70,229,0), rgba(79,70,229,.22) 85%, #4F46E5);pointer-events:none;display:none}
+.dr{padding:10px 20px;display:grid;gap:9px;align-content:start;overflow:hidden;position:relative}
+.sh{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:#111827;text-transform:uppercase;letter-spacing:.04em}
+.sh span{font-size:11.5px;color:#6B7280;text-transform:none;letter-spacing:0;font-weight:500;display:flex;align-items:center;gap:5px}
+.spk{color:#7C3AED}
+.fg{display:grid;grid-template-columns:1.25fr 1fr;gap:5px 12px;margin-top:6px}
+.fl{display:grid;gap:3px}
+.fl.w2{grid-column:1/-1}
+.fl label{font-size:11.5px;color:#6B7280;font-weight:500}
+.box{height:28px;border:1px solid #E5E7EB;border-radius:6px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;background:#fff;white-space:nowrap;overflow:hidden}
+.sk{display:block;height:9px;border-radius:5px;background:linear-gradient(90deg,#EEF0F3,#E2E5EA,#EEF0F3);width:60%}
+.fv .val{display:none}
+.fv.on .sk{display:none}
+.fv.on .val{display:inline;animation:fin .35s ease}
+@keyframes fin{from{opacity:0}to{opacity:1}}
+.tag{font-size:11px;font-weight:500;padding:1px 7px;border-radius:9px;background:#ECFDF5;color:#047857;white-space:nowrap;display:inline-flex;gap:4px;align-items:center}
+.lt{border:1px solid #E5E7EB;border-radius:8px;overflow:visible;margin-top:6px;position:relative}
+.lr{display:grid;grid-template-columns:18px .85fr 1.35fr 36px 34px 70px;gap:8px;align-items:center;height:30px;padding:0 10px;border-bottom:1px solid #F0F1F3;font-size:12.5px;position:relative;transition:background .3s}
+.lr.hd{height:28px;background:#F9FAFB;font-size:11px;color:#6B7280;font-weight:500;border-radius:8px 8px 0 0}
+.lr .r{text-align:right}
+.lr .m{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px}
+.lr .k{color:#9CA3AF}
+.lr.ln .c{opacity:0;transition:opacity .3s}
+.lr.ln.on .c{opacity:1}
+.lr.ln .lsk{position:absolute;left:40px;right:14px;top:12px;height:9px;border-radius:5px;background:#EEF0F3}
+.lr.ln.on .lsk{display:none}
+.lr.warnrow{background:#FFFBEB}
+.mapd{display:inline-flex;gap:5px;align-items:center;white-space:nowrap}
+.fv.on .val.mapd{display:inline-flex}
+.mapd .ck{color:#059669;font-size:11px}
+.pc{justify-self:end;padding:2px 6px;border-radius:5px;transition:background .3s, box-shadow .3s}
+.pc .p1{display:none}
+.pc.fixed .p0{display:none}
+.pc.fixed .p1{display:inline}
+.pc.warn{background:#FEF3C7;box-shadow:0 0 0 1.5px #F59E0B;color:#92400E;font-weight:600}
+.pc.fixed{background:#ECFDF5;color:#047857;font-weight:600}
+.ltot{display:flex;justify-content:flex-end;gap:14px;padding:4px 12px 0;font-size:12.5px;color:#374151}
+.ltot b{font-weight:600}
+.ltot .t1{display:none}
+.ltot.fixed .t0{display:none}
+.ltot.fixed .t1{display:inline}
+.cks{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;margin-top:6px}
+.ck{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#374151;min-height:20px}
+.ck .ic{width:16px;height:16px;display:grid;place-items:center;flex:none}
+.ck .ic > *{display:none}
+.ck:not(.run):not(.ok):not(.warn) .pd{display:block}
+.ck.run .spin{display:inline-block;color:#4F46E5}
+.ck.ok .yes{display:grid}
+.ck.warn .no{display:grid}
+.ck .pd{width:12px;height:12px;border-radius:50%;border:1.5px dashed #D1D5DB}
+.ck .yes,.ck .no{width:16px;height:16px;border-radius:50%;place-items:center;font-size:10px;font-weight:700;color:#fff}
+.ck .yes{background:#10B981}
+.ck .no{background:#F59E0B}
+.ck.warn{color:#92400E;font-weight:500}
+.ck .t1{display:none}
+.ck.warn .t0{display:none}
+.ck.warn .t1{display:inline}
+.pop{position:absolute;right:-6px;top:100px;width:300px;background:#fff;border-radius:10px;box-shadow:0 14px 34px rgba(0,0,0,.2),0 0 0 1px rgba(0,0,0,.06);padding:12px 14px;z-index:10;font-size:12.5px}
+.pop::before{content:"";position:absolute;right:30px;top:-6px;width:12px;height:12px;background:#fff;transform:rotate(45deg);box-shadow:-1px -1px 0 rgba(0,0,0,.06)}
+.pop h6{margin:0 0 6px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.pop .w{width:16px;height:16px;border-radius:50%;background:#F59E0B;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700}
+.pop dl{display:grid;grid-template-columns:1fr auto;gap:3px 10px;margin:0 0 10px}
+.pop dt{color:#6B7280}
+.pop dd{margin:0;font-weight:600;text-align:right}
+.pop .bts{display:flex;gap:8px}
+.pop .btn{height:28px;font-size:12.5px}
+.pop .btn.dk{background:#111827;border-color:#111827;color:#fff}
+
+
+/* volume + comparison */
+.stats{display:flex;gap:8px}
+.stats div{border:1px solid #E5E7EB;border-radius:8px;padding:5px 12px;display:grid;line-height:1.25;background:#fff}
+.stats span{font-size:11px;color:#6B7280;white-space:nowrap}
+.stats b{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.win{transition:opacity .6s ease, transform .6s ease}
+.win.away{opacity:0;transform:scale(.94)}
+.cmp{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:52px 110px 0;font-family:Inter,system-ui,sans-serif;color:#111827;pointer-events:none;gap:16px}
+.cmp-h{text-align:center}
+.cmp-h h2{margin:0;font-size:40px;font-weight:700;letter-spacing:-.02em;color:#1E1838}
+.cmp-h p{margin:4px 0 0;font-size:17px;color:#3A3158;font-weight:500}
+.clock{display:flex;align-items:center;gap:10px;background:rgba(17,24,39,.85);color:#fff;border-radius:999px;padding:7px 16px 7px 8px;font-size:15px;font-variant-numeric:tabular-nums}
+.clock b{font-weight:700;min-width:20px;text-align:right}
+.clock .ring{width:110px;height:8px;border-radius:4px;background:rgba(255,255,255,.2);overflow:hidden}
+.clock .ring i{display:block;height:100%;width:0;background:#A5B4FC}
+.cmp-cards{display:grid;grid-template-columns:1fr 1fr;gap:28px;width:100%}
+.cc{background:rgba(255,255,255,.94);border-radius:18px;padding:20px 24px;box-shadow:0 20px 50px -12px rgba(40,20,80,.4);display:grid;gap:12px;align-content:start}
+.cc.hi{box-shadow:0 0 0 3px #4F46E5, 0 20px 50px -12px rgba(40,20,80,.45)}
+.cc-t{display:flex;justify-content:space-between;align-items:center}
+.cc .lab{font-size:17px;font-weight:700}
+.cc .per{font-size:13px;font-weight:600;color:#4B5563;background:#F3F4F6;padding:3px 10px;border-radius:999px}
+.cc.hi .per{background:#EEF2FF;color:#3730A3}
+.big{display:flex;align-items:baseline;gap:10px}
+.big b{font-size:60px;font-weight:700;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;}
+.cc.hi .big b{color:#4F46E5}
+.big span{font-size:16px;color:#4B5563;font-weight:500}
+.sq{display:grid;grid-template-columns:repeat(16,1fr);gap:5px}
+.sq i{aspect-ratio:1;border-radius:4px;background:#E5E7EB;transition:background .15s}
+.sq i.f{background:#6B7280}
+.cc.hi .sq i.f{background:#4F46E5}
+.cc p{margin:0;font-size:13.5px;color:#4B5563}
+.cmp-f{font-size:13px;color:#3A3158;font-weight:500}
+
+
+.btn.pri.hov{background:#4338CA;border-color:#4338CA;box-shadow:0 0 0 4px rgba(79,70,229,.22)}
+#ns-link.hov{text-decoration:underline}
+.nbt.hov{border-color:#7A8AA0}
+.ns-st span.hov{background:#EDF2F8}
+.m-toasts{position:absolute;right:16px;top:52px;width:330px;z-index:5}
+#m-toasts .m-toast{position:absolute;right:16px;top:52px}
+
+
+.nsv{visibility:hidden}
+.nsv.show{visibility:visible}
+.ns-filt{display:flex;align-items:center;gap:8px;margin:8px 0 6px;font-size:12px;color:#333}
+.ns-filt label{font-size:10.5px;color:#6E6E6E}
+.ns-filt .sel{border:1px solid #C3C9D1;border-radius:2px;padding:2px 8px;background:#fff;margin-right:10px}
+.ns-filt .gap{flex:1}
+#ns-ltab td{white-space:nowrap}
+tr.nsr{display:none}
+tr.nsr.on{display:table-row;animation:fin .4s ease}
+tr.nsr.fl td{background:#FFF6D6 !important}
+#ns-ltab td,#ns-ltab tr{transition:background .6s}
+
+
+.nsv.show{animation:fin .3s ease}
+.nsload{position:absolute;left:0;top:80px;height:3px;background:#4E8FE0;width:0;z-index:3}
+.nsload.on{animation:ld .45s ease-out forwards}
+@keyframes ld{0%{width:0;opacity:1}80%{width:100%;opacity:1}100%{width:100%;opacity:0}}
+.arr{display:inline-flex;gap:3px;margin-right:6px}
+.arr span{border:1px solid #C3C9D1;border-radius:2px;padding:0 7px;line-height:18px;color:#255BA6;background:#fff;font-weight:700}
+.arr span.hov{background:#E3ECF8;border-color:#7A8AA0}
+
+
+.nsloading{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;font-size:14px;color:#555;background:#fff;border:1px solid #D5D9DE;border-radius:4px;padding:10px 18px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.nsloading.in{transform:translateX(-50%) translateY(6px)}
+.nsloading.in.on{transform:translateX(-50%)}
+.nsloading .spin{color:#2D6CC2;width:14px;height:14px}
+tr.in{transform:none}
+
+
+.wv .skb{display:inline-block;width:70%;max-width:150px;height:9px;border-radius:4px;background:#E6EAF0;vertical-align:middle}
+.ns-sum .wv .skb{width:46px}
+.wv .val{display:none}
+.wv.on .skb{display:none}
+.wv.on .val{display:inline;animation:wflash 1.6s ease;border-radius:2px;padding:0 2px;margin:0 -2px}
+@keyframes wflash{0%{background:#FFE27A}100%{background:transparent}}
+#ns-rec.on{animation:wflash 1.6s ease}
+#ns-itab tr.in.on td{animation:wflash 1.6s ease}
+#ns-itab #nsi-0 th{animation:none}
+.ns-conf{display:flex;gap:10px;align-items:center;border:1px solid #8DBF6E;background:#EEF7E8;border-radius:3px;padding:4px 12px;margin:0 0 7px;font-size:12.5px;color:#2F4F1D;animation:fin .4s ease}
+.ns-conf b{color:#3D6B1E}
+
+/* ---------------- NetSuite ---------------- */
+#v-ns{font-family:"Open Sans", Arial, sans-serif;color:#262626;font-size:12.5px;background:#fff}
+.ns-top{height:46px;display:flex;align-items:center;gap:18px;padding:0 16px;border-bottom:1px solid #D5D9DE}
+.ns-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:#1F3A5F;width:230px}
+.ns-logo i{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,#1F3A5F,#2E6B8A);display:block}
+.ns-search{width:330px;height:28px;border:1px solid #C3C9D1;border-radius:3px;display:flex;align-items:center;padding:0 9px;color:#8A8F96;font-size:12.5px}
+.ns-top .gap{flex:1}
+.ns-user{text-align:right;line-height:1.25}
+.ns-user b{display:block;font-size:12.5px;font-weight:600}
+.ns-user span{font-size:11.5px;color:#666}
+.ns-nav{height:34px;background:#2F4562;display:flex;align-items:center;padding:0 8px;color:#fff;font-size:12.5px}
+.ns-nav span{padding:0 11px;height:100%;display:flex;align-items:center}
+.ns-nav span.on{background:#46618A}
+.ns-nav .home{width:14px;height:12px;border:1.6px solid #fff;border-top:0;margin:0 6px 0 8px;position:relative;padding:0}
+.nsb{position:absolute;top:80px;left:0;right:0;bottom:0;padding:12px 22px;overflow:hidden}
+.ns-tr{display:flex;align-items:baseline;justify-content:space-between}
+.ns-tr h1{margin:0;font-size:22px;font-weight:400;color:#4D4D4D}
+.ns-tr .lk{font-size:12px;color:#255BA6;display:flex;gap:14px}
+.ns-rec{display:flex;align-items:center;gap:10px;margin:2px 0 6px;font-size:16px;color:#333}
+.ns-rec b{font-weight:600}
+.ns-stat{font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#E3F0D5;color:#3D6B1E;padding:2px 7px;border-radius:2px}
+.ns-btns{display:flex;gap:6px;margin-bottom:8px}
+.nbt{height:25px;padding:0 12px;border-radius:3px;font-size:12px;font-weight:600;display:flex;align-items:center;border:1px solid #B2B2B2;background:linear-gradient(#FFFFFF,#E9E9E9);color:#333}
+.nbt.p{background:linear-gradient(#4E8FE0,#2D6CC2);border-color:#285FA9;color:#fff}
+.ns-sec{height:24px;display:flex;align-items:center;gap:6px;padding:0 8px;background:#EEF2F7;border-bottom:1px solid #C7D3E2;font-weight:700;font-size:12.5px;color:#333}
+.ns-sec::before{content:"";border:4px solid transparent;border-top-color:#555;margin-top:4px}
+.ns-prim{display:grid;grid-template-columns:1fr 1fr 1fr 250px;gap:0 20px;padding:7px 6px 6px}
+.nf{margin-bottom:5px}
+.nf label{display:block;font-size:10.5px;color:#6E6E6E;text-transform:uppercase;letter-spacing:.02em}
+.nf div{font-size:12.5px;color:#262626;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nf a{color:#255BA6;text-decoration:none}
+.ns-sum{border:1px solid #D5DCE5;background:#F6F8FA;border-radius:2px;padding:8px 12px;font-size:12px;align-self:start}
+.ns-sum h5{margin:0 0 6px;font-size:11px;letter-spacing:.04em;color:#555}
+.ns-sum div{display:flex;justify-content:space-between;padding:2px 0}
+.ns-sum div.t{border-top:1px solid #C9D2DD;margin-top:4px;padding-top:5px;font-weight:700}
+.ns-sum span:first-child{color:#6E6E6E;font-size:10.5px;text-transform:uppercase}
+.ns-st{display:flex;gap:2px;border-bottom:1px solid #B7C3D3;padding-left:2px}
+.ns-st span{padding:5px 12px;background:#E1E8F0;border:1px solid #B7C3D3;border-bottom:0;font-size:12px;color:#333;border-radius:2px 2px 0 0;margin-bottom:-1px}
+.ns-st span.act{background:#fff;font-weight:700;border-bottom:1px solid #fff}
+.ns-tbl{margin-top:8px;width:100%;border-collapse:collapse;font-size:12px}
+.ns-tbl th{background:#E2E7EE;color:#555;font-size:10.5px;text-transform:uppercase;text-align:left;padding:5px 8px;font-weight:700;border-right:1px solid #F4F6F9}
+.ns-tbl td{padding:6px 8px;border-bottom:1px solid #E5E5E5}
+.ns-tbl tr:nth-child(even) td{background:#F7F8FA}
+.ns-tbl .r{text-align:right}
+.ns-tbl a{color:#255BA6}
+.ns-sst{display:flex;gap:16px;margin-top:8px;font-size:12px;color:#255BA6;padding:0 4px}
+.ns-sst span.act{color:#262626;font-weight:700}
+.ns-att{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px}
+.ns-att .in2{width:220px;height:24px;border:1px solid #C3C9D1;border-radius:2px}
+#ns-file td{transition:background .5s}
+#ns-file.hl2 td{background:#FFF6D6}
+
+/* Embed: fill a 16:9 iframe on the case study; hide the stepper chrome. */
+html.embed,html.embed body{margin:0;height:100%;overflow:hidden;background:#0c0c0f}
+html.embed .page{max-width:none;margin:0;padding:0;display:block;height:100%}
+html.embed .stepper{display:none}
+html.embed .stage-wrap{height:100%;aspect-ratio:auto;border-radius:0;box-shadow:none}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <ol class="stepper" id="stepper" aria-label="Workflow steps"><li class="fill" aria-hidden="true"></li></ol>
+
+  <div class="stage-wrap" id="wrap">
+    <div class="stage" id="stage" role="img" aria-label="Screen recording of the PO workflow">
+      <div class="cam" id="cam">
+        <div class="wall"></div>
+        <div class="win" id="win">
+          <!-- Browser chrome -->
+          <div class="chrome">
+            <div class="tabs">
+              <div class="lights"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+              <div class="tab" id="tab1"><span class="fav" style="background:#0F6CBD">✉</span><span class="tt">Mail – orders@northlinesupply.com</span><span class="x">×</span></div>
+              <div class="tab" id="tab2"><span class="fav" style="background:linear-gradient(135deg,#1F3A5F,#2E6B8A)">OD</span><span class="tt"><span class="v" id="t2q">Incoming orders · Order Desk</span><span class="v" id="t2d">PO 45821-B · Order Desk</span></span><span class="x">×</span></div>
+              <div class="tab" id="tab3"><span class="fav" style="background:#2F4562">N</span><span class="tt"><span class="v" id="t3l">Sales Orders - NetSuite (Northline Supply)</span><span class="v" id="t3r">Sales Order - NetSuite (Northline Supply)</span></span><span class="x">×</span></div>
+              <span class="newtab">+</span>
+            </div>
+            <div class="toolbar">
+              <span class="nav">‹ › ↻</span>
+              <div class="url">🔒
+                <span class="v" id="u-mail">mail.northlinesupply.com<span class="p">/owa/#path=/mail/inbox</span></span>
+                <span class="v" id="u-q">desk.northlinesupply.com<span class="p">/orders</span></span>
+                <span class="v" id="u-d">desk.northlinesupply.com<span class="p">/orders/po-45821-b</span></span>
+                <span class="v" id="u-nsl">4827316.app.netsuite.com<span class="p">/app/accounting/transactions/transactionlist.nl?Transaction_TYPE=SalesOrd</span></span><span class="v" id="u-ns2">4827316.app.netsuite.com<span class="p">/app/accounting/transactions/salesord.nl?id=10483&amp;whence=</span></span><span class="v" id="u-ns">4827316.app.netsuite.com<span class="p">/app/accounting/transactions/salesord.nl?id=10482&amp;whence=</span></span>
+              </div>
+              <span class="me">JP</span>
+            </div>
+          </div>
+
+          <div class="content">
+            <!-- ============ MAIL ============ -->
+            <div class="view" id="v-mail">
+              <div class="m-top">
+                <span class="waffle"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="app">Mail</span>
+                <div class="m-search">⌕ Search</div>
+                <span class="sp"></span><span class="ico"></span><span class="ico" style="border-radius:50%"></span>
+                <span class="av">JP</span>
+              </div>
+              <div class="m-cmd"><span class="new">New mail</span><span class="g">Delete</span><span class="g">Archive</span><span class="g">Move to</span><span class="g">Reply</span><span class="g">Forward</span></div>
+              <div class="m-body">
+                <div class="m-rail"><i class="on"></i><i></i><i></i><i></i></div>
+                <div class="m-fold">
+                  <div class="acct">⌄ orders@northlinesupply.com</div>
+                  <div class="f sel"><span>Inbox</span><b class="cnt-mail">3</b></div>
+                  <div class="f"><span>Junk Email</span></div>
+                  <div class="f"><span>Drafts</span></div>
+                  <div class="f"><span>Sent Items</span></div>
+                  <div class="f"><span>Processed</span></div>
+                  <div class="f"><span>Archive</span></div>
+                  <div class="acct" style="margin-top:10px">⌄ sales@northlinesupply.com</div>
+                  <div class="f"><span>Inbox</span><b>2</b></div>
+                  <div class="f"><span>Sent Items</span></div>
+                </div>
+                <div class="m-list" id="m-list">
+                  <div class="m-lh"><h3>Inbox</h3><span style="color:#616161">☰ Filter</span></div>
+                  <div class="m-tabs"><span class="on">Focused</span><span>Other</span></div>
+                  <div id="m-newbox"></div>
+                  <div class="mi"><span class="fr">Lakeshore Plumbing Purchasing</span><span class="tm">4:12 PM</span><span class="su">PO 7713 <span class="clip">📎</span></span><span class="pr">Order attached, thanks. Please confirm the ship date.</span></div>
+                  <div class="mi unread"><span class="fr">Dave Kowalski</span><span class="tm">3:58 PM</span><span class="su">Order for Dec</span><span class="pr">Hi, can you send 40 x 6in flex duct, 12 x 8in damper and 30 x…</span></div>
+                  <div class="mi"><span class="fr">Brant Industrial AP</span><span class="tm">3:40 PM</span><span class="su">PO 2210-A (revised) <span class="clip">📎</span></span><span class="pr">Revised quantities on lines 2 and 4. Please use this version.</span></div>
+                  <div class="mi unread"><span class="fr">Quill Electric</span><span class="tm">2:15 PM</span><span class="su">RE: Quote Q-5521</span><span class="pr">Thanks Jordan, we’ll review and get back to you by Friday.</span></div>
+                  <div class="mi"><span class="fr">Bayview Mechanical</span><span class="tm">2:02 PM</span><span class="su">PO 9930 <span class="clip">📎</span></span><span class="pr">Please process the attached PO, same items as last month.</span></div>
+                </div>
+                <div class="m-read">
+                  <div class="m-empty v" id="m-empty"><div class="env"></div><b style="color:#242424">Select an item to read</b><span>Nothing is selected</span></div>
+                  <div class="m-open v" id="m-open">
+                    <h2>PO 45821-B – November restock</h2>
+                    <div class="m-from">
+                      <span class="av">MO</span>
+                      <span class="nm"><b>Maria Okafor</b> <span>&lt;mokafor@harbormechanical.ca&gt;</span></span>
+                      <span class="dt">Thu 11/19/2026 4:31 PM</span>
+                      <span class="to">To: Orders &lt;orders@northlinesupply.com&gt;</span>
+                    </div>
+                    <div class="m-att" id="m-att"><span class="pdfi">PDF</span><div><div class="n">PO-45821-B.pdf</div><div class="s">214 KB</div></div></div>
+                    <div class="m-txt">
+                      <p>Hi team,</p>
+                      <p>Please see the attached PO 45821-B for our November restock. We need delivery to our Hamilton DC by Nov 27.</p>
+                      <p>Thanks,<br>Maria Okafor<br><span style="color:#616161">Purchasing Coordinator | Harbor Mechanical Supply<br>905-555-0142</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div id="m-toasts"></div>
+            </div>
+
+            <!-- ============ ORDER DESK ============ -->
+            <div class="view" id="v-desk">
+              <aside class="sb">
+                <div class="brand"><span class="lg">◆</span><div><b>Order Desk</b><span>Northline Supply</span></div></div>
+                <div class="nv sel"><i></i>Incoming<span class="c"><span class="cnt-all">5</span></span></div>
+                <div class="nv"><i></i>Needs review<span class="c y">1</span></div>
+                <div class="nv"><i></i>Ready to approve<span class="c"><span class="cnt-ready">2</span></span></div>
+                <div class="nv"><i></i>Sent to NetSuite<span class="c">148</span></div>
+                <div class="nv"><i></i>Rejected<span class="c">3</span></div>
+                <div class="sbh">Mailboxes</div>
+                <div class="mbx"><span class="live"></span>orders@northlinesupply.com</div>
+                <div class="mbx"><span class="live"></span>sales@northlinesupply.com</div>
+                <div class="bot">
+                  <div class="conn"><span class="live"></span><span><b>NetSuite</b> · connected</span></div>
+                  <div class="usr"><span class="a">JP</span>Jordan Patel</div>
+                </div>
+              </aside>
+              <div class="main">
+                <!-- queue -->
+                <div class="sub" id="q">
+                  <div class="qh">
+                    <div><h1>Incoming orders</h1><p>Watching orders@ and sales@northlinesupply.com · checked against NetSuite</p></div>
+                    <div class="st"><span class="live"></span>Checking orders@ and sales@</div>
+                  </div>
+                  <div class="flt">
+                    <span id="f-all">All <span class="n"><span class="cnt-all">5</span></span></span>
+                    <span id="f-rev"><i class="d" style="background:#F59E0B"></i>Needs review <span class="n">1</span></span>
+                    <span><i class="d" style="background:#10B981"></i>Ready to approve <span class="n"><span class="cnt-ready">2</span></span></span>
+                    <span>Processing <span class="n"><span class="cnt-proc">0</span></span></span>
+                    <span>Sent <span class="n">1</span></span>
+                  </div>
+                  <div class="qt" id="q-table">
+                    <div class="qr hd"><span>Status</span><span>Customer</span><span>PO #</span><span>Source</span><span class="r">Lines</span><span class="r">Total</span><span>Received</span></div>
+                    <div id="q-new"></div>
+                    <div class="qwrap r-ok"><div class="qr"><span><span class="badge b-g"><i class="d"></i>Ready to approve</span></span><span><b style="font-weight:600">Lakeshore Plumbing</b></span><span>7713</span><span><span class="fchip"><span class="ft x">XLSX</span>PO_7713.xlsx</span><span class="sm">orders@</span></span><span class="r">6</span><span class="r">$2,418.30</span><span>4:12 PM<span class="sm">picked up in 38s</span></span></div></div>
+                    <div class="qwrap"><div class="qr"><span><span class="badge b-y"><i class="d"></i>Needs review</span><span class="why">Unknown part · 8in damper</span></span><span><b style="font-weight:600">Northgate HVAC</b></span><span class="mute">none</span><span><span class="fchip"><span class="ft e">TEXT</span>Email body</span><span class="sm">sales@</span></span><span class="r">4</span><span class="r">$1,962.00</span><span>3:58 PM<span class="sm">picked up in 51s</span></span></div></div>
+                    <div class="qwrap r-ok"><div class="qr"><span><span class="badge b-g"><i class="d"></i>Ready to approve</span></span><span><b style="font-weight:600">Brant Industrial</b></span><span>2210-A</span><span><span class="fchip"><span class="ft p">PDF</span>2210-A.pdf</span><span class="sm">orders@</span></span><span class="r">2</span><span class="r">$884.50</span><span>3:40 PM<span class="sm">picked up in 44s</span></span></div></div>
+                    <div class="qwrap r-ok"><div class="qr"><span><span class="badge b-s"><i class="d"></i>Sent · SO10479</span></span><span><b style="font-weight:600">Bayview Mechanical</b></span><span>9930</span><span><span class="fchip"><span class="ft p">PDF</span>PO 9930.pdf</span><span class="sm">orders@</span></span><span class="r">11</span><span class="r">$5,140.20</span><span>2:02 PM<span class="sm">picked up in 40s</span></span></div></div>
+                  </div>
+                </div>
+
+                <!-- detail -->
+                <div class="sub" id="d">
+                  <div class="dh" id="d-head">
+                    <span class="back" id="back">‹ Orders</span>
+                                        <div class="t"><b>PO 45821-B</b><span>Harbor Mechanical Supply · 4:31 PM</span></div>
+                    <span id="badge" style="display:flex;gap:8px">
+                      <span class="badge b-b v" id="b-read"><i class="spin" style="width:9px;height:9px"></i>Reading PO</span>
+                      <span class="badge b-b v" id="b-chk"><i class="spin" style="width:9px;height:9px"></i>Checking NetSuite</span>
+                      <span class="badge b-g v" id="b-ready"><i class="d"></i>Ready to approve</span>
+                      <span class="badge b-n v" id="b-chk6">✓ 6/6 checks</span>
+                      <span class="badge b-s v" id="b-sent"><i class="d"></i>Sent to NetSuite · SO10482</span>
+                    </span>
+                    <span class="gap"></span>
+                    <span class="btn">Reject</span>
+                    <span class="btn pri appr" id="appr"><span class="a0">Approve &amp; create sales order</span><span class="a1"><i class="spin"></i>Creating sales order…</span><span class="a2">✓ Sales order created</span></span>
+                  </div>
+                  <div class="dbody" id="d-body">
+                    <div class="pdfv">
+                      <div class="pdf-tb"><span>PO-45821-B.pdf</span><span class="gap"></span><span>1 / 1</span><span>−&nbsp; 100% &nbsp;+</span><span>⤓</span></div>
+                      <div class="pdf-sc">
+                        <div class="paper" id="paper">
+                          <div class="ph1">
+                            <div class="co f">Harbor Mechanical Supply<small>88 Bayfront Rd, Hamilton ON L8L 1A1</small><i class="hl" id="ph-cust"></i></div>
+                            <div class="ttl">PURCHASE<br>ORDER</div>
+                          </div>
+                          <div class="two">
+                            <dl>
+                              <dt>PO No.</dt><dd class="f">45821-B<i class="hl" id="ph-po"></i></dd>
+                              <dt>Order date</dt><dd class="f">Nov 19, 2026<i class="hl" id="ph-date"></i></dd>
+                              <dt>Ship by</dt><dd class="f">Nov 27, 2026<i class="hl" id="ph-ship"></i></dd>
+                              <dt>Terms</dt><dd>Net 30</dd>
+                            </dl>
+                            <div class="f"><div class="lab">SHIP TO</div>Harbor Mechanical – Hamilton DC<br>1200 Industrial Pkwy N<br>Hamilton ON L8W 3A1<i class="hl" id="ph-to"></i></div>
+                          </div>
+                          <table>
+                            <thead><tr><th>ITEM</th><th>DESCRIPTION</th><th class="r">QTY</th><th>UOM</th><th class="r">UNIT</th><th class="r">AMOUNT</th></tr></thead>
+                            <tbody>
+                              <tr><td class="f">HMS-4410<i class="hlr" id="ph-l1"></i></td><td>Ball valve 1" brass</td><td class="r">24</td><td>EA</td><td class="r" id="ns-rate1">18.40</td><td class="r">441.60</td></tr>
+                              <tr><td class="f">HMS-2207<i class="hlr" id="ph-l2"></i></td><td>Copper elbow 3/4"</td><td class="r">200</td><td>EA</td><td class="r">1.18</td><td class="r">236.00</td></tr>
+                              <tr><td class="f">HMS-9031<i class="hlr" id="ph-l3"></i></td><td>PEX tubing 1/2" 100ft</td><td class="r">10</td><td>RL</td><td class="r" id="ns-rate3">64.00</td><td class="r">640.00</td></tr>
+                            </tbody>
+                          </table>
+                          <div class="tot"><span>TOTAL CAD</span><span>1,317.60</span></div>
+                          <div class="sig">Authorized by: M. Okafor, Purchasing<br>Please reference our PO number on all packing slips and invoices.<br><br>Deliver Mon–Fri 7:00–15:00. Dock 4.</div>
+                          <div class="beam" id="beam"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="dr" id="d-right">
+                      <section>
+                        <div class="sh">Order details <span><span class="spk">✦</span>Read by AI from PO-45821-B.pdf</span></div>
+                        <div class="fg">
+                          <div class="fl"><label>Customer</label><div class="box fv" id="fv-cust"><i class="sk"></i><span class="val">Harbor Mechanical Supply</span><span class="tag in" id="tg-cust">✓ Matched</span></div></div>
+                          <div class="fl"><label>PO number</label><div class="box fv" id="fv-po"><i class="sk"></i><span class="val">45821-B</span><span class="tag in" id="tg-dup">✓ Not a duplicate</span></div></div>
+                          <div class="fl"><label>Order date</label><div class="box fv" id="fv-date"><i class="sk"></i><span class="val">Nov 19, 2026</span></div></div>
+                          <div class="fl"><label>Ship by</label><div class="box fv" id="fv-ship"><i class="sk"></i><span class="val">Nov 27, 2026</span></div></div>
+                          <div class="fl w2"><label>Ship to</label><div class="box fv" id="fv-to"><i class="sk" style="width:80%"></i><span class="val">Harbor Mechanical – Hamilton DC, 1200 Industrial Pkwy N, Hamilton ON L8W 3A1</span><span class="tag in" id="tg-to">✓ On file</span></div></div>
+                        </div>
+                      </section>
+                      <section id="lines">
+                        <div class="sh">Lines <span>Customer part → your NetSuite item</span></div>
+                        <div class="lt">
+                          <div class="lr hd"><span>#</span><span>Customer part</span><span>NetSuite item</span><span class="r">Qty</span><span>Unit</span><span class="r">Price</span></div>
+                          <div class="lr ln" id="ln1"><i class="lsk"></i><span class="c k">1</span><span class="c m">HMS-4410</span><span class="c fv" id="mi1"><i class="sk" style="width:70%"></i><span class="val mapd m">VLV-BR-100 <span class="ck">✓</span></span></span><span class="c r">24</span><span class="c">EA</span><span class="c r">$18.40</span></div>
+                          <div class="lr ln" id="ln2"><i class="lsk"></i><span class="c k">2</span><span class="c m">HMS-2207</span><span class="c fv" id="mi2"><i class="sk" style="width:70%"></i><span class="val mapd m">FIT-CU-EL075 <span class="ck">✓</span></span></span><span class="c r">200</span><span class="c">EA</span><span class="c r">$1.18</span></div>
+                          <div class="lr ln" id="ln3" style="border-bottom:0"><i class="lsk"></i><span class="c k">3</span><span class="c m">HMS-9031</span><span class="c fv" id="mi3"><i class="sk" style="width:70%"></i><span class="val mapd m">PEX-050-100 <span class="ck">✓</span></span></span><span class="c r">10</span><span class="c">RL</span><span class="c r">$64.00</span></div>
+                        </div>
+                        <div class="ltot in" id="ltot"><span>Order total</span><b>$1,317.60</b></div>
+                      </section>
+                      <section id="checks">
+                        <div class="sh">NetSuite checks</div>
+                        <div class="cks">
+                          <div class="ck" id="ck1"><span class="ic"><i class="pd"></i><i class="spin"></i><i class="yes">✓</i><i class="no">!</i></span>Customer matched</div>
+                          <div class="ck" id="ck4"><span class="ic"><i class="pd"></i><i class="spin"></i><i class="yes">✓</i><i class="no">!</i></span>Ship-to address on file</div>
+                          <div class="ck" id="ck2"><span class="ic"><i class="pd"></i><i class="spin"></i><i class="yes">✓</i><i class="no">!</i></span>3 of 3 parts mapped to items</div>
+                          <div class="ck" id="ck5"><span class="ic"><i class="pd"></i><i class="spin"></i><i class="yes">✓</i><i class="no">!</i></span>Units valid for each item</div>
+                          <div class="ck" id="ck3"><span class="ic"><i class="pd"></i><i class="spin"></i><i class="yes">✓</i><i class="no">!</i></span><span class="t0">Prices match customer price</span><span class="t1">Line 2: PO $1.12, NetSuite $1.18</span></div>
+                          <div class="ck" id="ck6"><span class="ic"><i class="pd"></i><i class="spin"></i><i class="yes">✓</i><i class="no">!</i></span>PO number not entered before</div>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="toast in" id="q-toast1"><span class="ok">✓</span><b>New PO captured from orders@</b><span class="s">PO-45821-B.pdf · original saved · 42 s after the email arrived</span></div>
+                <div class="toast in" id="q-toast2"><span class="ok">✓</span><b>Sales order SO10482 created in NetSuite</b><span class="s">PO-45821-B.pdf attached to the order</span><span class="act"><span id="toast-view">View in NetSuite ↗</span><span style="color:#9CA3AF">Undo</span></span></div>
+              </div>
+            </div>
+
+            <!-- ============ NETSUITE ============ -->
+            <div class="view" id="v-ns">
+              <div class="ns-top">
+                <div class="ns-logo"><i></i>Northline Supply</div>
+                <div class="ns-search">Search</div>
+                <span class="gap"></span>
+                <span style="color:#666">Help</span><span style="color:#666">Feedback</span>
+                <div class="ns-user"><b>Jordan Patel</b><span>Northline Supply - Sales Administrator</span></div>
+              </div>
+              <div class="ns-nav"><span class="home"></span><span>Activities</span><span class="on">Transactions</span><span>Lists</span><span>Reports</span><span>Analytics</span><span>Documents</span><span>Setup</span><span>Customization</span><span>Support</span></div>
+              <i class="nsload" id="ns-load"></i>
+              <div class="nsb nsv" id="ns-body">
+                <div class="nsloading in" id="ns-loading"><i class="spin"></i>Loading…</div>
+                <div class="ns-tr in" id="ns-t1"><h1>Sales Order</h1><span class="lk"><span class="arr"><span>‹</span><span id="ns-next">›</span></span><span>List</span><span>Search</span><span>Customize</span></span></div>
+                <div class="ns-rec in" id="ns-rec"><b>SO10482</b> Harbor Mechanical Supply Ltd. <span class="ns-stat" id="ns-stat">PENDING FULFILLMENT</span></div>
+                <div class="ns-btns in" id="ns-b"><span class="nbt p">Edit</span><span class="nbt">Back</span><span class="nbt">Fulfill</span><span class="nbt">Cancel Order</span><span class="nbt">Close</span><span class="nbt">Actions ▾</span></div>
+                <div class="ns-conf v" id="ns-conf"><b>Confirmation</b><span>Sales order SO10482 was created by Order Desk from PO-45821-B.pdf.</span></div>
+                <div class="ns-sec in" id="ns-s">Primary Information</div>
+                <div class="ns-prim in" id="ns-prim">
+                  <div>
+                    <div class="nf" id="nf-1"><label>Custom Form</label><div class="wv" id="w-1"><i class="skb"></i><span class="val">Northline Sales Order</span></div></div>
+                    <div class="nf" id="nf-2"><label>Order #</label><div class="wv" id="w-2"><i class="skb"></i><span class="val">SO10482</span></div></div>
+                    <div class="nf" data-k="3" id="ns-cust"><label>Customer</label><div class="wv" id="w-3"><i class="skb"></i><span class="val"><a>C-2087 Harbor Mechanical Supply Ltd.</a></span></div></div>
+                    <div class="nf" id="nf-4"><label>Date</label><div class="wv" id="w-4"><i class="skb"></i><span class="val">11/19/2026</span></div></div>
+                  </div>
+                  <div>
+                    <div class="nf" id="nf-5"><label>Status</label><div class="wv" id="w-5"><i class="skb"></i><span class="val">Pending Fulfillment</span></div></div>
+                    <div class="nf" data-k="6" id="ns-po"><label>PO #</label><div class="wv" id="w-6"><i class="skb"></i><span class="val">45821-B</span></div></div>
+                    <div class="nf" id="nf-7"><label>Ship Date</label><div class="wv" id="w-7"><i class="skb"></i><span class="val">11/27/2026</span></div></div>
+                    <div class="nf" data-k="8" id="ns-memo"><label>Memo</label><div class="wv" id="w-8"><i class="skb"></i><span class="val">Created by Order Desk from emailed PO</span></div></div>
+                  </div>
+                  <div>
+                    <div class="nf" id="nf-9"><label>Sales Rep</label><div class="wv" id="w-9"><i class="skb"></i><span class="val"><a>Dana Liu</a></span></div></div>
+                    <div class="nf" id="nf-10"><label>Location</label><div class="wv" id="w-10"><i class="skb"></i><span class="val">Hamilton DC</span></div></div>
+                    <div class="nf" id="nf-11"><label>Department</label><div class="wv" id="w-11"><i class="skb"></i><span class="val">Sales : Ontario</span></div></div>
+                    <div class="nf" id="nf-12"><label>Terms</label><div class="wv" id="w-12"><i class="skb"></i><span class="val">Net 30</span></div></div>
+                  </div>
+                  <div class="ns-sum in" id="ns-sum">
+                    <h5>SUMMARY</h5>
+                    <div><span>Subtotal</span><span class="wv" id="ws-1"><i class="skb"></i><span class="val">1,317.60</span></span></div>
+                    <div><span>Discount</span><span class="wv" id="ws-2"><i class="skb"></i><span class="val">.00</span></span></div>
+                    <div><span>Tax Total</span><span class="wv" id="ws-3"><i class="skb"></i><span class="val">171.29</span></span></div>
+                    <div><span>Shipping Cost</span><span class="wv" id="ws-4"><i class="skb"></i><span class="val">.00</span></span></div>
+                    <div class="t" id="ns-total"><span>Total</span><span class="wv" id="ws-5"><i class="skb"></i><span class="val">1,488.89</span></span></div>
+                  </div>
+                </div>
+                <div id="ns-sub">
+                  <div class="ns-st in" id="ns-tabs"><span id="st-items">Items</span><span>Shipping</span><span>Billing</span><span>Accounting</span><span>Relationships</span><span id="st-comm">Communication</span><span>System Information</span></div>
+                  <div class="v" id="ns-items">
+                    <table class="ns-tbl in" id="ns-itab"><tr class="in" id="nsi-0"><th>Item</th><th class="r">Quantity</th><th>Units</th><th>Description</th><th>Price Level</th><th class="r">Rate</th><th class="r">Amount</th><th>Tax Code</th></tr><tr class="in" id="nsi-1"><td><a>VLV-BR-100</a></td><td class="r">24</td><td>Each</td><td>Ball valve 1" brass</td><td>Harbor Contract</td><td class="r">18.40</td><td class="r">441.60</td><td>HST:ON</td></tr><tr class="in" id="nsi-2"><td><a>FIT-CU-EL075</a></td><td class="r">200</td><td>Each</td><td>Copper elbow 3/4"</td><td>Harbor Contract</td><td class="r" id="ns-rate2">1.18</td><td class="r">236.00</td><td>HST:ON</td></tr><tr class="in" id="nsi-3"><td><a>PEX-050-100</a></td><td class="r">10</td><td>Roll</td><td>PEX tubing 1/2" x 100ft</td><td>Harbor Contract</td><td class="r">64.00</td><td class="r">640.00</td><td>HST:ON</td></tr></table>
+                  </div>
+                  <div class="v" id="ns-comm">
+                    <div class="ns-sst"><span>Events</span><span>Tasks</span><span>Phone Calls</span><span class="act">Files (1)</span><span>User Notes</span><span>Messages</span></div>
+                    <div class="ns-att"><span style="color:#6E6E6E">ATTACH FILE</span><span class="in2"></span><span class="nbt">Attach</span></div>
+                    <table class="ns-tbl" id="ns-files">
+                      <tr><th>Name</th><th>Folder</th><th class="r">Size (KB)</th><th>Last Modified</th><th>File Type</th><th>Attached By</th></tr>
+                      <tr id="ns-file"><td><a id="ns-link">PO-45821-B.pdf</a></td><td>Order Desk : Customer POs</td><td class="r">214</td><td>11/19/2026 4:33 pm</td><td>PDF File</td><td>Order Desk Integration</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="nsb nsv" id="ns-body-2">
+                <div class="ns-tr"><h1>Sales Order</h1><span class="lk"><span class="arr"><span>‹</span><span id="ns-next-2">›</span></span><span>List</span><span>Search</span><span>Customize</span></span></div>
+                <div class="ns-rec" id="ns-rec-2"><b>SO10483</b> Westdale Mechanical Ltd. <span class="ns-stat">PENDING FULFILLMENT</span></div>
+                <div class="ns-btns"><span class="nbt p">Edit</span><span class="nbt">Back</span><span class="nbt">Fulfill</span><span class="nbt">Cancel Order</span><span class="nbt">Close</span><span class="nbt">Actions ▾</span></div>
+                <div class="ns-sec">Primary Information</div>
+                <div class="ns-prim" id="ns-prim-2">
+                  <div>
+                    <div class="nf"><label>Custom Form</label><div>Northline Sales Order</div></div>
+                    <div class="nf"><label>Order #</label><div>SO10483</div></div>
+                    <div class="nf"><label>Customer</label><div><a>C-1144 Westdale Mechanical Ltd.</a></div></div>
+                    <div class="nf"><label>Date</label><div>11/19/2026</div></div>
+                  </div>
+                  <div>
+                    <div class="nf"><label>Status</label><div>Pending Fulfillment</div></div>
+                    <div class="nf" id="ns-po-2"><label>PO #</label><div>WM-7781</div></div>
+                    <div class="nf"><label>Ship Date</label><div>11/25/2026</div></div>
+                    <div class="nf"><label>Memo</label><div>Created by Order Desk from emailed PO</div></div>
+                  </div>
+                  <div>
+                    <div class="nf"><label>Sales Rep</label><div><a>Dana Liu</a></div></div>
+                    <div class="nf"><label>Location</label><div>Hamilton DC</div></div>
+                    <div class="nf"><label>Department</label><div>Sales : Ontario</div></div>
+                    <div class="nf"><label>Terms</label><div>Net 30</div></div>
+                  </div>
+                  <div class="ns-sum" id="ns-sum-2">
+                    <h5>SUMMARY</h5>
+                    <div><span>Subtotal</span><span>4,882.10</span></div>
+                    <div><span>Discount</span><span>.00</span></div>
+                    <div><span>Tax Total</span><span>634.67</span></div>
+                    <div><span>Shipping Cost</span><span>.00</span></div>
+                    <div class="t" id="ns-total-2"><span>Total</span><span>5,516.77</span></div>
+                  </div>
+                </div>
+                <div id="ns-sub-2">
+                  <div class="ns-st"><span id="st-items-2">Items</span><span>Shipping</span><span>Billing</span><span>Accounting</span><span>Relationships</span><span id="st-comm-2">Communication</span><span>System Information</span></div>
+                  <div class="v" id="ns-items-2">
+                    <table class="ns-tbl">
+                      <tr><th>Item</th><th class="r">Quantity</th><th>Units</th><th>Description</th><th>Price Level</th><th class="r">Rate</th><th class="r">Amount</th><th>Tax Code</th></tr><tr><td><a>VLV-BR-100</a></td><td class="r">40</td><td>Each</td><td>Ball valve 1" brass</td><td>Westdale Contract</td><td class="r">18.40</td><td class="r">736.00</td><td>HST:ON</td></tr><tr><td><a>VLV-BR-075</a></td><td class="r">60</td><td>Each</td><td>Ball valve 3/4" brass</td><td>Westdale Contract</td><td class="r">14.25</td><td class="r">855.00</td><td>HST:ON</td></tr><tr><td><a>FIT-CU-EL075</a></td><td class="r">300</td><td>Each</td><td>Copper elbow 3/4"</td><td>Westdale Contract</td><td class="r">1.18</td><td class="r">354.00</td><td>HST:ON</td></tr><tr><td><a>FIT-CU-TE075</a></td><td class="r">150</td><td>Each</td><td>Copper tee 3/4"</td><td>Westdale Contract</td><td class="r">1.64</td><td class="r">246.00</td><td>HST:ON</td></tr><tr><td><a>PEX-050-100</a></td><td class="r">12</td><td>Roll</td><td>PEX tubing 1/2" x 100ft</td><td>Westdale Contract</td><td class="r">64.00</td><td class="r">768.00</td><td>HST:ON</td></tr><tr><td><a>PEX-075-100</a></td><td class="r">6</td><td>Roll</td><td>PEX tubing 3/4" x 100ft</td><td>Westdale Contract</td><td class="r">98.50</td><td class="r">591.00</td><td>HST:ON</td></tr><tr><td><a>CLMP-PEX-050</a></td><td class="r">10</td><td>Each</td><td>PEX clamp ring 1/2" (bag of 100)</td><td>Westdale Contract</td><td class="r">21.90</td><td class="r">219.00</td><td>HST:ON</td></tr><tr><td><a>HNG-CU-075</a></td><td class="r">200</td><td>Each</td><td>Pipe hanger 3/4"</td><td>Westdale Contract</td><td class="r">0.86</td><td class="r">172.00</td><td>HST:ON</td></tr><tr><td><a>SOL-LF-1LB</a></td><td class="r">8</td><td>Each</td><td>Lead-free solder 1 lb</td><td>Westdale Contract</td><td class="r">38.75</td><td class="r">310.00</td><td>HST:ON</td></tr><tr><td><a>FLX-050</a></td><td class="r">20</td><td>Each</td><td>Flux paste 4 oz</td><td>Westdale Contract</td><td class="r">6.40</td><td class="r">128.00</td><td>HST:ON</td></tr><tr><td><a>VLV-CHK-100</a></td><td class="r">10</td><td>Each</td><td>Check valve 1"</td><td>Westdale Contract</td><td class="r">31.60</td><td class="r">316.00</td><td>HST:ON</td></tr><tr><td><a>SEAL-THRD-8</a></td><td class="r">10</td><td>Each</td><td>Thread sealant 8 oz</td><td>Westdale Contract</td><td class="r">18.71</td><td class="r">187.10</td><td>HST:ON</td></tr></table>
+                  </div>
+                  <div class="v" id="ns-comm-2">
+                    <div class="ns-sst"><span>Events</span><span>Tasks</span><span>Phone Calls</span><span class="act">Files (1)</span><span>User Notes</span><span>Messages</span></div>
+                    <div class="ns-att"><span style="color:#6E6E6E">ATTACH FILE</span><span class="in2"></span><span class="nbt">Attach</span></div>
+                    <table class="ns-tbl" id="ns-files-2">
+                      <tr><th>Name</th><th>Folder</th><th class="r">Size (KB)</th><th>Last Modified</th><th>File Type</th><th>Attached By</th></tr>
+                      <tr id="ns-file-2"><td><a id="ns-link-2">WM-7781.pdf</a></td><td>Order Desk : Customer POs</td><td class="r">188</td><td>11/19/2026 4:33 pm</td><td>PDF File</td><td>Order Desk Integration</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <i class="rip" id="rip"></i>
+        <svg class="cursor" id="cur" viewBox="0 0 24 30" aria-hidden="true"><path d="M3 2 L3 24 L8.6 18.8 L12.6 27.6 L16.4 26 L12.5 17.4 L20 17.2 Z" fill="#111" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  if (window.self !== window.top) document.documentElement.classList.add("embed");
+  const INF = 1e9, END = 31.0;
+  const SPEED = 0.85;   // playback speed: below 1 plays the whole recording slower
+  const STEPS = [
+    {t:0,     lbl:"PO arrives"},
+    {t:3.95,  lbl:"Captured"},
+    {t:7.75,  lbl:"AI reads"},
+    {t:11.2,  lbl:"Checks NetSuite"},
+    {t:14.2,  lbl:"Sorted green"},
+    {t:16.4,  lbl:"Review &amp; approve"},
+    {t:20.9,  lbl:"In NetSuite"}
+  ];
+  const $ = s => document.querySelector(s);
+  const G = {};
+  function S(sel, cls, ...ranges){ const k = sel+"|"+cls; (G[k] ||= {sel, cls, r:[]}).r.push(...ranges); }
+  const on = (sel, a, b=INF) => S(sel, "on", [a,b]);
+
+  /* ---- incoming emails (Harbor's lands first) ---- */
+  const MAIL = [
+    {id:"mh", ini:"MO", col:"#8764B8", from:"Maria Okafor", subj:"PO 45821-B – November restock", prev:"Hi team, please see the attached PO for our November restock. We need…", time:"4:31 PM", t:0.3, hero:true},
+    {id:"mw", ini:"WM", col:"#038387", from:"Westdale Mechanical AP", subj:"PO WM-7781", prev:"Please process the attached purchase order.", time:"4:31 PM", t:0.9},
+    {id:"mp", ini:"PH", col:"#CA5010", from:"Pioneer HVAC", subj:"Purchase Order 30418", prev:"Hi, PO attached. Deliver to the Barrie branch please.", time:"4:31 PM", t:1.5}
+  ];
+  const OPEN = 2.25;
+  const box = $("#m-newbox"), tbox = $("#m-toasts");
+  MAIL.forEach((m,i)=>{
+    const w = document.createElement("div");
+    w.className = "ins"; w.id = m.hero ? "m-new" : "w-"+m.id;
+    w.innerHTML = '<div class="mi unread"'+(m.hero?' id="m-new-row"':'')+'><span class="fr">'+m.from+'</span><span class="tm">'+m.time+'</span><span class="su">'+m.subj+' <span class="clip">📎</span></span><span class="pr">'+m.prev+'</span></div>';
+    box.prepend(w);
+    on("#"+w.id, m.t);
+    const tt = document.createElement("div");
+    tt.className = "m-toast in"; tt.id = "t-"+m.id;
+    tt.innerHTML = '<span class="av" style="background:'+m.col+'">'+m.ini+'</span><b>'+m.from+'</b><span class="s">'+m.subj+'</span><span class="p">'+m.prev+'</span>';
+    tbox.appendChild(tt);
+    on("#t-"+m.id, m.t, i<MAIL.length-1 ? MAIL[i+1].t : 2.2);
+  });
+  S("#m-new","read",[OPEN,INF]); S("#m-new-row","sel",[OPEN,INF]);
+  on("#m-empty",0,OPEN); on("#m-open",OPEN); S("#m-att","hov",[2.8,3.95]);
+
+  /* ---- incoming orders in Order Desk (Harbor's lands first) ---- */
+  const ROWS = [
+    {id:"h", cust:"Harbor Mechanical Supply", email:"mokafor@harbormechanical.ca", po:"45821-B", ft:"p", FT:"PDF", file:"PO-45821-B.pdf", mb:"orders@", lines:3, total:"$1,317.60", pick:42, t:4.3, hero:true},
+    {id:"w", cust:"Westdale Mechanical", email:"ap@westdalemech.com", po:"WM-7781", ft:"p", FT:"PDF", file:"WM-7781.pdf", mb:"orders@", lines:12, total:"$4,882.10", pick:40, t:4.9},
+    {id:"p", cust:"Pioneer HVAC", email:"orders@pioneerhvac.ca", po:"30418", ft:"p", FT:"PDF", file:"PO 30418.pdf", mb:"orders@", lines:3, total:"$612.00", pick:44, t:5.5},
+    {id:"s", cust:"Summit Supply Co.", email:"purchasing@summitsupply.ca", po:"88213", ft:"x", FT:"XLSX", file:"PO-88213.xlsx", mb:"sales@", lines:15, total:"$7,310.55", pick:41, t:6.1}
+  ];
+  const qn = $("#q-new");
+  ROWS.forEach(r=>{
+    const T = r.hero ? {read:5.0, chk:10.4, ok:14.2} : {read:r.t+0.6, chk:r.t+1.3, ok:r.t+2.1};
+    r.ok = T.ok;
+    const w = document.createElement("div");
+    w.className = "qwrap ins"; w.id = r.hero ? "r-hw" : "rw-"+r.id;
+    const rid = r.hero ? "r-h" : "r-"+r.id;
+    w.innerHTML = '<div class="qr" id="'+rid+'"><span>'+
+      '<span class="badge b-n v" id="'+r.id+'-cap"><i class="d"></i>Captured</span>'+
+      '<span class="badge b-b v" id="'+r.id+'-read"><i class="spin" style="width:9px;height:9px"></i>Reading PO</span>'+
+      '<span class="badge b-b v" id="'+r.id+'-chk"><i class="spin" style="width:9px;height:9px"></i>Checking NetSuite</span>'+
+      '<span class="badge b-g v" id="'+r.id+'-ok"><i class="d"></i>Ready to approve</span></span>'+
+      '<span><span class="k0 mute">'+r.email+'</span><span class="k1"><b style="font-weight:600">'+r.cust+'</b></span></span>'+
+      '<span><span class="k0 mute">—</span><span class="k1">'+r.po+'</span></span>'+
+      '<span><span class="fchip"><span class="ft '+r.ft+'">'+r.FT+'</span>'+r.file+'</span><span class="sm">'+(r.hero?'<span class="saved in" id="h-saved">✓ Original saved</span> · ':'')+r.mb+'</span></span>'+
+      '<span class="r"><span class="k0 mute">—</span><span class="k1">'+r.lines+'</span></span>'+
+      '<span class="r"><span class="k0 mute">—</span><span class="k1">'+r.total+'</span></span>'+
+      '<span>4:31 PM<span class="sm">picked up in '+r.pick+'s</span></span></div>';
+    qn.prepend(w);
+    on("#"+w.id, r.t); S("#"+rid,"flash",[r.t, r.t+1.4]);
+    on("#"+r.id+"-cap", r.t, T.read); on("#"+r.id+"-read", T.read, T.chk); on("#"+r.id+"-chk", T.chk, T.ok); on("#"+r.id+"-ok", T.ok);
+    S("#"+rid,"known",[T.chk,INF]);
+  });
+  on("#h-saved",4.8); on("#q-toast1",4.4,6.6);
+
+  // views, tabs, urls
+  const NS2 = 24.65;
+  S("#v-mail","show",[0,3.95]); S("#v-desk","show",[3.95,20.9]); S("#v-ns","show",[20.9,INF]);
+  S("#q","show",[3.95,7.75]); S("#d","show",[7.75,INF]);
+  S("#ns-body","show",[20.9,INF]); S("#ns-load","on",[20.9,21.4]);
+  S("#tab1","active",[0,3.95]); S("#tab2","active",[3.95,20.9]); S("#tab3","active",[20.9,INF]); S("#tab3","show",[20.9,INF]);
+  on("#t2q",0,7.75); on("#t2d",7.75); on("#t3r",0);
+  on("#u-mail",0,3.95); on("#u-q",3.95,7.75); on("#u-d",7.75,20.9); on("#u-ns",20.9);
+  // detail: AI reads
+  on("#b-read",7.75,10.4); on("#b-chk",10.4,14.2); on("#b-ready",14.2,19.6); on("#b-chk6",14.2,19.6); on("#b-sent",19.6);
+  [["#fv-cust",8.2,"#ph-cust"],["#fv-po",8.45,"#ph-po"],["#fv-date",8.7,"#ph-date"],["#fv-ship",8.9,"#ph-ship"],["#fv-to",9.1,"#ph-to"]]
+    .forEach(([f,t,h])=>{ on(f,t); on(h,t-0.1,t+0.4); });
+  [["#ln1",9.4,"#ph-l1"],["#ln2",9.65,"#ph-l2"],["#ln3",9.9,"#ph-l3"]].forEach(([l,t,h])=>{ on(l,t); on(h,t-0.1,t+0.4); });
+  on("#ltot",10.1);
+  // detail: checks
+  S("#ck1","run",[11.3,11.7]); S("#ck1","ok",[11.7,INF]); on("#tg-cust",11.7);
+  S("#ck2","run",[11.35,12.2]); S("#ck2","ok",[12.2,INF]); on("#mi1",11.8); on("#mi2",12.0); on("#mi3",12.2);
+  S("#ck3","run",[11.4,12.6]); S("#ck3","ok",[12.6,INF]);
+  S("#ck4","run",[11.45,12.9]); S("#ck4","ok",[12.9,INF]); on("#tg-to",12.9);
+  S("#ck5","run",[11.5,13.2]); S("#ck5","ok",[13.2,INF]);
+  S("#ck6","run",[11.55,13.5]); S("#ck6","ok",[13.5,INF]); on("#tg-dup",13.5);
+  // approve
+  S("#appr","dis",[0,14.2]); S("#appr","hov",[18.35,18.9]); S("#appr","busy",[18.9,19.6]); S("#appr","done",[19.6,INF]);
+  on("#q-toast2",19.6,20.9);
+  // netsuite record: the empty layout appears, then the order is written in
+  S("#st-items","act",[0,INF]); on("#ns-items",0);
+  on("#ns-loading",21.0,21.4);
+  ["#ns-t1","#ns-b","#ns-s","#ns-prim","#ns-sum","#ns-tabs","#ns-itab","#nsi-0"].forEach(x=>on(x,21.4));
+  on("#ns-rec",21.6);
+  for (let k=1;k<=12;k++) on("#w-"+k, 21.8 + (k-1)*0.14);
+  on("#nsi-1",23.7); on("#nsi-2",24.0); on("#nsi-3",24.3);
+  for (let k=1;k<=5;k++) on("#ws-"+k, 24.5 + (k-1)*0.1);
+  on("#ns-conf",25.2);
+
+  /* ---- counters ---- */
+  const arrivedMail = t => MAIL.filter(m => t >= m.t).length;
+  const arrived = t => ROWS.filter(r => t >= r.t);
+  const COUNT = [
+    [".cnt-mail",  t => 3 + arrivedMail(t) - (t >= OPEN ? 1 : 0)],
+    [".cnt-all",   t => 4 + arrived(t).length],
+    [".cnt-proc",  t => arrived(t).filter(r => t < r.ok).length],
+    [".cnt-ready", t => 2 + arrived(t).filter(r => t >= r.ok).length]
+  ];
+
+  /* ---- camera [t, target, zoom] and cursor [t, target] ---- */
+  const FULL = [640,360];
+  const CAM = [
+    [0,FULL,1],[0.5,FULL,1],
+    [1.1,["#m-list",.5,.36],1.6],[2.1,["#m-list",.5,.36],1.6],
+    [2.6,["#m-open",.4,.3],1.6],[3.3,["#m-open",.4,.3],1.6],
+    [3.8,FULL,1],[4.2,FULL,1],
+    [4.8,["#r-h",.42,.5],1.65],[5.6,["#r-h",.42,.5],1.65],
+    [6.2,["#q",.5,.36],1.25],[7.3,["#q",.5,.36],1.25],
+    [7.8,FULL,1],[7.9,FULL,1],
+    [8.4,["#d-body",.5,.3],1.4],[9.1,["#d-body",.5,.3],1.4],
+    [9.5,["#d-body",.5,.55],1.4],[11.0,["#d-body",.5,.55],1.4],
+    [11.5,["#d-right",.5,.84],1.65],[14.0,["#d-right",.5,.84],1.65],
+    [14.5,["#d-head",.45,.5],1.8],[16.2,["#d-head",.45,.5],1.8],
+    [16.8,["#d-body",.5,.5],1.12],[17.8,["#d-body",.5,.5],1.12],
+    [18.4,"#appr",2.3],[19.7,"#appr",2.3],
+    [20.1,"#q-toast2",1.9],[20.8,"#q-toast2",1.9],
+    [21.3,FULL,1],[21.5,FULL,1],
+    [22.1,["#ns-prim",.4,.5],1.4],[23.4,["#ns-prim",.4,.5],1.4],
+    [24.0,["#ns-body",.56,.66],1.22],[25.0,["#ns-body",.56,.66],1.22],
+    [25.7,["#ns-rec",.22,.9],1.9],[26.9,["#ns-rec",.22,.9],1.9],
+    [27.6,["#ns-items",.5,.55],1.6],[28.9,["#ns-items",.5,.55],1.6],
+    [29.5,"#ns-sum",2.0],[30.3,"#ns-sum",2.0],
+    [END,FULL,1]
+  ];
+  const CUR = [
+    [0,[780,430]],[0.4,[780,430]],
+    [1.0,["#m-new-row",.55,.5]],[1.6,["#m-new-row",.45,.5]],
+    [2.1,["#m-new-row",.35,.5]],[2.35,["#m-new-row",.35,.5]],
+    [2.8,["#m-att",.6,.6]],[3.3,["#m-att",.6,.6]],
+    [3.75,["#tab2",.45,.5]],[4.05,["#tab2",.45,.5]],
+    [4.8,"#h-saved"],[5.5,"#h-saved"],
+    [6.4,["#q-table",.75,.4]],[7.0,["#r-h",.55,.6]],
+    [7.5,["#r-h",.3,.5]],[7.85,["#r-h",.3,.5]],
+    [8.3,["#fv-cust",.5,.6]],[8.75,["#fv-date",.5,.6]],[9.15,["#fv-to",.4,.6]],
+    [9.5,["#ln1",.5,.6]],[9.95,["#ln3",.5,.6]],[10.4,["#ltot",.7,.5]],
+    [11.6,["#ck1",.3,.6]],[12.3,["#ck3",.3,.6]],[12.9,["#ck4",.3,.6]],[13.6,["#ck6",.3,.6]],
+    [14.6,["#badge",.3,.6]],[15.8,["#badge",.6,.6]],
+    [16.7,["#paper",.3,.6]],[17.2,["#paper",.75,.64]],
+    [17.7,["#d-right",.45,.52]],[18.0,["#d-right",.6,.6]],
+    [18.4,["#appr",.42,.55]],[19.1,["#appr",.42,.55]],
+    [20.2,"#toast-view"],[20.95,"#toast-view"],
+    [21.6,["#ns-body",.55,.45]],[22.1,"#w-3"],[22.6,"#w-6"],[22.9,"#w-8"],[23.4,"#w-11"],
+    [23.9,"#nsi-1"],[24.4,"#nsi-3"],[25.0,"#ws-5"],
+    [25.8,["#ns-conf",.3,.6]],[26.4,["#ns-conf",.7,.6]],[26.9,"#ns-stat"],
+    [27.8,"#ns-rate1"],[28.3,"#ns-rate2"],[28.8,"#ns-rate3"],
+    [29.6,"#ns-total"],[END,"#ns-total"]
+  ];
+  const CLICKS = [2.2, 3.9, 7.7, 18.85, 20.85];
+
+  /* ---- engine ---- */
+  const groups = Object.values(G).map(g => ({...g, els:[...document.querySelectorAll(g.sel)]}));
+  const counters = COUNT.map(([sel,f]) => ({els:[...document.querySelectorAll(sel)], f, last:null}));
+  function apply(t){
+    for (const g of groups){
+      let want = false;
+      for (const [a,b] of g.r) if (t>=a && t<b){ want = true; break; }
+      for (const el of g.els) if (el.classList.contains(g.cls) !== want) el.classList.toggle(g.cls, want);
+    }
+    for (const c of counters){ const v = c.f(t); if (v !== c.last){ c.last = v; c.els.forEach(e => e.textContent = v); } }
+  }
+  const cam = $("#cam"), cur = $("#cur"), rip = $("#rip"), beam = $("#beam"), paper = $("#paper");
+  const stage = $("#stage"), wrap = $("#wrap");
+  function resolve(target, t){
+    if (typeof target[0] === "number") return target;
+    let sel = target, fx = .5, fy = .5;
+    if (Array.isArray(target)) [sel, fx, fy] = target;
+    apply(t);
+    // layout coordinates inside the 1280×720 stage: independent of how big the page is shown
+    const el = $(sel); let x = 0, y = 0, e = el;
+    while (e && e !== cam){ x += e.offsetLeft + (e.clientLeft||0); y += e.offsetTop + (e.clientTop||0); e = e.offsetParent; }
+    return [x + el.offsetWidth*fx, y + el.offsetHeight*fy];
+  }
+  let camK = [], curK = [], built = false;
+  function build(){
+    built = true;
+    stage.classList.add("notrans"); cam.style.transform = "none";
+    camK = CAM.map(([t,tg,z]) => ({t, v:[...resolve(tg,t), z]}));
+    curK = CUR.map(([t,tg]) => ({t, v:resolve(tg,t)}));
+    apply(now); void stage.offsetWidth; stage.classList.remove("notrans");
+  }
+  const ease = p => p<.5 ? 4*p*p*p : 1-Math.pow(-2*p+2,3)/2;
+  function interp(K, t){
+    if (t <= K[0].t) return K[0].v;
+    for (let i=0;i<K.length-1;i++){
+      const a=K[i], b=K[i+1];
+      if (t < b.t){ const p = ease((t-a.t)/(b.t-a.t)); return a.v.map((x,j)=>x+(b.v[j]-x)*p); }
+    }
+    return K[K.length-1].v;
+  }
+
+  const reduced = false;
+  let now = 0, playing = !reduced, stepIdx = -1, last = performance.now();
+  const stepper = $("#stepper"), fill = stepper.querySelector(".fill");
+
+  function render(t){
+    apply(t);
+    if (!built) return;
+    let [cx,cy,z] = interp(camK, t);
+    if (!isFinite(cx) || !isFinite(cy) || !isFinite(z)){ cx = 640; cy = 360; z = 1; }
+    if (reduced){ cx=640; cy=360; z=1; }
+    cx = Math.min(Math.max(cx, 640/z), 1280-640/z);
+    cy = Math.min(Math.max(cy, 360/z), 720-360/z);
+    cam.style.transform = `translate(${640-cx*z}px,${360-cy*z}px) scale(${z})`;
+    let [x,y] = interp(curK, t);
+    let calm = 1; for (const c of CLICKS) if (Math.abs(t-c) < 0.35) calm = 0;
+    x += calm*5*Math.sin(t*2.1); y += calm*4*Math.sin(t*1.7+1);
+    let press = 1, rp = -1, rpos = null;
+    for (const c of CLICKS){
+      const d = t - c;
+      if (d >= -0.08 && d < 0.14) press = 0.82;
+      if (d >= 0 && d < 0.32){ rp = d/0.32; rpos = interp(curK, c); }
+    }
+    if (!isFinite(x) || !isFinite(y)){ x = 930; y = 600; }
+    cur.style.transform = `translate(${x-3}px,${y-2}px) scale(${press})`;
+    if (rp >= 0){ rip.style.opacity = (0.9*(1-rp)).toFixed(3); rip.style.transform = `translate(${rpos[0]}px,${rpos[1]}px) scale(${0.3+rp*1.3})`; }
+    else rip.style.opacity = 0;
+    if (t >= 7.9 && t < 10.2){
+      beam.style.display = "block";
+      beam.style.transform = `translateY(${(t-7.9)/2.3*(paper.offsetHeight+50)-50}px)`;
+    } else beam.style.display = "none";
+    let si = 0; for (let i=0;i<STEPS.length;i++) if (t >= STEPS[i].t) si = i;
+    if (si !== stepIdx) setStep(si);
+    const s0 = STEPS[si].t, s1 = si<STEPS.length-1 ? STEPS[si+1].t : END;
+    const frac = Math.min(1, (si + Math.min(1,(t-s0)/(s1-s0))) / (STEPS.length-1));
+    fill.style.width = "calc((100% - 100%/" + STEPS.length + ") * " + frac.toFixed(4) + ")";
+  }
+
+  const items = STEPS.map((s,i)=>{
+    const li = document.createElement("li");
+    li.innerHTML = '<button type="button" aria-label="Step '+(i+1)+'"><span class="dot">'+(i+1)+'</span><span class="lbl">'+s.lbl+'</span></button>';
+    li.querySelector("button").addEventListener("click", e=>{ e.stopPropagation(); seekStep(i); });
+    stepper.appendChild(li); return li;
+  });
+  function setStep(i){ stepIdx = i; items.forEach((li,j)=>{ li.classList.toggle("on", j===i); li.classList.toggle("done", j<i); }); }
+  function seek(t){ now = t; stage.classList.add("notrans"); render(now); void stage.offsetWidth; stage.classList.remove("notrans"); }
+  function seekStep(i){
+    i = (i + STEPS.length) % STEPS.length;
+    if (reduced){ const e = i<STEPS.length-1 ? STEPS[i+1].t : END; seek(e - 0.3); setStep(i); }
+    else { seek(STEPS[i].t + 0.01); setPlaying(true); }
+  }
+  function setPlaying(p){ playing = p; stage.classList.toggle("paused", !p); }
+  document.addEventListener("keydown", e=>{
+    if (e.key==="ArrowRight") seekStep(stepIdx+1);
+    else if (e.key==="ArrowLeft") seekStep(stepIdx-1);
+    else if (e.key===" " && !(e.target.closest && e.target.closest("button"))){ e.preventDefault(); setPlaying(!playing); }
+  });
+
+  function fit(){ stage.style.setProperty("--s", wrap.clientWidth/1280); }
+  fit();
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(wrap); else addEventListener("resize", fit);
+
+  // advance on the real clock, so a throttled frame rate never slows the recording down
+  function tick(){
+    const ts = performance.now(), dt = Math.min((ts-last)/1000, 1); last = ts;
+    if (!built){ if (stage.offsetWidth > 0){ build(); seek(now); } return; }
+    if (playing){ now += dt*SPEED; if (now >= END) seek(0); }
+    render(now);
+  }
+  function loop(){ tick(); requestAnimationFrame(loop); }
+  window.__seek = t => { setPlaying(false); seek(t); };
+  const start = () => { if (stage.offsetWidth > 0) build(); setPlaying(playing); seek(0); last = performance.now(); requestAnimationFrame(loop); setInterval(tick, 40); };
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(start);
+})();
+</script>
+</body>
+</html>
