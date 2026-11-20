@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book a workflow review. — Alty Labs</title>
+<link rel="canonical" href="https://altylabs.com/contact/">
+<meta name="description" content="Tell us about one piece of work that costs your team time.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/site.css">
+</head>
+
+<body>
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="/" aria-label="Alty Labs home">
+      <svg width="26" height="26" viewBox="0 0 30 30" aria-hidden="true"><path d="M15 3L27 9.5L15 16L3 9.5Z" fill="#ff5a36"/><path d="M3 14.5L15 21L27 14.5M3 19.5L15 26L27 19.5" fill="none" stroke="#ecedee" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      Alty Labs
+    </a>
+    <nav aria-label="Main">
+      <a href="/case-studies/" data-nav="case-studies">Case studies</a>
+      <a href="/process/" data-nav="process">Process</a>
+      <span class="dd"><a href="/industries/" data-nav="industries">Industries</a>
+        <span class="dd-menu"><span><a href="/industries/dental-labs/">Dental labs</a><a href="/industries/land-surveyors/">Land surveyors</a><a href="/industries/distributors/">Distributors</a></span></span></span>
+    </nav>
+    <a class="btn small" href="/contact/">Book a workflow review</a>
+  </div>
+</header>
+<main id="main">
+
+<section class="art-hero">
+  <div class="wrap grid2" style="align-items:start">
+    <div class="stack" style="gap:24px">
+      <span class="eyebrow">Contact</span>
+      <h1>Book a workflow review.</h1>
+      <p class="lede">Tell us about one piece of work that costs your team time.</p>
+      <div class="card panel">
+        <h3>What happens next</h3>
+        <ul class="dim"><li>We read your brief and reply with a time to talk.</li><li>On the call you walk us through the work as it runs today.</li><li>You get a short written view: fix, buy or build.</li></ul>
+        <p class="mono" id="email-line">Email: <a class="link" id="email-link" href="mailto:hello@altylabs.com">hello@altylabs.com</a></p>
+      </div>
+    </div>
+    <div class="stack">
+      <form id="brief" action="https://formsubmit.co/hello@altylabs.com" method="POST">
+        <input type="hidden" name="_subject" value="Workflow review brief">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="hidden" name="_template" value="box">
+        <div><label for="f-name">Your name</label><input type="text" id="f-name" name="name" autocomplete="name" required></div>
+        <div><label for="f-biz">Business name</label><input type="text" id="f-biz" name="business" autocomplete="organization" required></div>
+        <div><label for="f-email">Email</label><input type="email" id="f-email" name="email" autocomplete="email" required></div>
+        <div><label for="f-size">Team size</label>
+          <select id="f-size" name="team_size"><option>1 to 5</option><option selected>6 to 20</option><option>21 to 50</option><option>51 or more</option></select></div>
+        <div><label for="f-ind">Industry</label>
+          <select id="f-ind" name="industry"><option>Dental lab</option><option>Manufacturing or machining</option><option>Distribution or wholesale</option><option>Fitness or coaching</option><option>Surveying or engineering</option><option>Professional services</option><option>Other</option></select></div>
+        <div><label for="f-area">Where does the time go?</label>
+          <select id="f-area" name="time_goes"><option>Quoting, estimating, proposals</option><option>Technical or programming work</option><option>Order entry</option><option>Research and records</option><option>Customer communication</option><option>Scheduling and job tracking</option><option>Something else</option></select></div>
+        <div class="full"><label for="f-msg">Describe the work in a few sentences</label><textarea id="f-msg" name="message"></textarea></div>
+        <div class="hp" aria-hidden="true" style="position:absolute;left:-9999px"><label for="f-hp">Leave this empty</label><input type="text" id="f-hp" name="_gotcha" tabindex="-1" autocomplete="off"></div>
+        <div class="full actions"><button class="btn" type="submit" id="f-send">Send my brief</button><span class="err" id="f-err" role="alert"></span></div>
+      </form>
+      <div class="card panel sent" id="sent-ok" hidden tabindex="-1">
+        <h3>Thanks, your brief is with us.</h3>
+        <p class="dim" id="sent-line"></p>
+      </div>
+      <div class="card panel" id="brief-out" hidden>
+        <h3>We couldn't send it from here.</h3>
+        <p class="dim">Please email it to <a class="link" href="mailto:hello@altylabs.com">hello@altylabs.com</a>. Your brief is below, ready to copy.</p>
+        <pre id="brief-text"></pre>
+        <div class="actions"><a class="btn" id="mail-brief" href="mailto:hello@altylabs.com">Open in your email app</a><button class="btn ghost" type="button" id="copy-brief">Copy brief</button></div>
+        <p class="mono" id="copy-state"></p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>
+  <div class="wrap">
+    <div class="fcols">
+      <div><a class="brand" href="/" style="padding:0 0 10px">Alty Labs</a><p class="dim" style="max-width:34ch">Custom AI systems and software, built inside the tools you already use.</p></div>
+      <div><h4>Industries</h4><a href="/industries/dental-labs/">Dental labs</a><a href="/industries/land-surveyors/">Land surveyors</a><a href="/industries/distributors/">Distributors</a></div>
+      <div><h4>Work</h4><a href="/case-studies/">Case studies</a><a href="/case-studies/rj-industrial-supply/">RJ Industrial Supply</a><a href="/case-studies/ejt-fitness/">EJT Fitness</a></div>
+      <div><h4>Company</h4><a href="/#what-we-build">What we build</a><a href="/process/">Process</a><a href="/#roi">ROI calculator</a><a href="/readiness/">Readiness check</a></div>
+      <div><h4>Connect</h4><a href="/contact/">Book a workflow review</a><a href="mailto:hello@altylabs.com">hello@altylabs.com</a></div>
+    </div>
+    <p class="mono legal">© 2026 Alty Labs</p>
+  </div>
+</footer>
+
+<script src="/js/contact.js"></script>
+</body>
+</html>
