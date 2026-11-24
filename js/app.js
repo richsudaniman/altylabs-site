@@ -23,6 +23,15 @@ function setMeta(page){
   if (c) c.setAttribute("href", m.canonical);
   var d = document.querySelector('meta[name="description"]');
   if (d) d.setAttribute("content", m.desc);
+  function setContent(sel, val){
+    var el = document.querySelector(sel);
+    if (el) el.setAttribute("content", val);
+  }
+  setContent('meta[property="og:title"]', m.title);
+  setContent('meta[property="og:description"]', m.desc);
+  setContent('meta[property="og:url"]', m.canonical);
+  setContent('meta[name="twitter:title"]', m.title);
+  setContent('meta[name="twitter:description"]', m.desc);
 }
 
 var NS = "http://www.w3.org/2000/svg", ACC = "#ff5a36", BG = "#0a0b0d", TXT = "#ecedee", DIM = "#8d9199";
